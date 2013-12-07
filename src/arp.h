@@ -24,30 +24,51 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_RAWSOCK_H__
-#define SRC_RAWSOCK_H__
+#ifndef SRC_ARP_H__
+#define SRC_ARP_H__
 
 #include <sstream>
+#include "./rawsock.h"
 
 namespace lurker {
-  class RawSock {
-  private:    
-    int sock_;
-    std::stringstream err_;
-    std::string errmsg_;
-    const std::string &dev_name_;
-    uint8_t hw_addr_[6];
+  class ArpHandler : public swarm::Handler {
+  private:
+    static const u_int16_t ETHERTYPE_ARP =  0x0806;
+    static const u_int16_t ETHERTYPE_IP  =  0x0800;
+    static const size_t ETHER_ADDR_LEN = 6;
+    static const size_t IPV4_ADDR_LEN  = 4;
+    struct ether_header {
+      u_int8_t dst_[ETHER_ADDR_LEN];
+      u_int8_t src_[ETHER_ADDR_LEN];
+      u_int16_t type_;
+    } __attribute__((packed));
+
+    static const u_int16_t ARPHRD_ETHER = 1; // Ethernet format
+    static const u_int16_t ARPOP_REPLY  = 2; // response to previous request 
+    struct arp_header {
+      u_int16_t hw_addr_fmt_;
+      u_int16_t pr_addr_fmt_;
+      u_int8_t  hw_addr_len_;
+      u_int8_t  pr_addr_len_;
+      u_int16_t op_;
+      u_int8_t  src_hw_addr_[ETHER_ADDR_LEN]; // MAC address
+      u_int8_t  src_pr_addr_[IPV4_ADDR_LEN]; // IPv4 address
+      u_int8_t  dst_hw_addr_[ETHER_ADDR_LEN]; // MAC address
+      u_int8_t  dst_pr_addr_[IPV4_ADDR_LEN]; // IPv4 address
+    } __attribute__((packed));
+
+    swarm::NetDec *nd_;
+    swarm::param_id op_;
+    RawSock *sock_;
 
   public:
-    RawSock(const std::string &dev_name);
-    ~RawSock();
-    bool open();
-    bool ready();
-    int write(void *ptr, size_t len);
-    const std::string &errmsg();
-    const uint8_t* hw_addr() const;
+    ArpHandler(swarm::NetDec *nd);
+    ~ArpHandler();
+    bool open_dev(const std::string &dev_name);
+    void recv(swarm::ev_id eid, const  swarm::Property &p);
   };
+
 }
 
 
-#endif  // SRC_RAWSOCK_H__
+#endif  // SRC_ARP_H__

@@ -22,9 +22,9 @@ Install
     % cd ..
     % git clone https://github.com/m-mizutani/lurker.git
     % cd lurker
-    % ./waf configure --libdir=../swarm/build --incdir=../swarm/src
-    % ./waf
-    % sudo ./waf install
+    % cmake -DINC_DIR=../swarm/src -DLIB_DIR=../swarm/lib .
+    % make
+    % sudo make install
 
 Usage
 --------------------------------------------

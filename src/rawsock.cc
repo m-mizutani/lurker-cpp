@@ -43,7 +43,11 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <ifaddrs.h>
+#include <sys/socket.h>
 #include <net/if.h>
+#include <net/if_dl.h>
+#include <net/if_types.h>
 #include <net/ethernet.h>
 #include <net/bpf.h>
 
@@ -84,6 +88,10 @@ namespace lurker {
     return this->errmsg_;
   }
 
+  const uint8_t* RawSock::hw_addr() const {
+    return &(this->hw_addr_[0]);
+  }
+
 
 #ifdef _WIN64
 //define something for Windows (64-bit)
@@ -92,6 +100,7 @@ namespace lurker {
 //define something for Windows (32-bit)
 #error
 #elif __APPLE__
+
 
   bool RawSock::open() {
     int bpf = 0;
@@ -110,12 +119,34 @@ namespace lurker {
     this->sock_ = bpf;
 
     struct ifreq bound_if;
-    strncpy(bound_if.ifr_name, this->dev_name_.c_str(), IFNAMSIZ);
-    if(ioctl(bpf, BIOCSETIF, &bound_if) > 0) {
+    strncpy(bound_if.ifr_name, this->dev_name_.c_str(), IFNAMSIZ - 1);
+    if (ioctl(bpf, BIOCSETIF, &bound_if) > 0) {
       this->err_ << "Cannot bind bpf device to physical device " 
                     << this->dev_name_;
       return false;
     }
+
+    struct ifaddrs *ifa_list, *ifa; 
+    if (getifaddrs(&ifa_list) < 0) {
+      this->err_ << "getifaddrs: " << strerror(errno);
+    }
+
+    // retrieve MAC address from dev_name
+    for (ifa = ifa_list; ifa != NULL; ifa = ifa->ifa_next) {
+      struct sockaddr_dl *dl = reinterpret_cast<struct sockaddr_dl*> (ifa->ifa_addr);
+      if (dl->sdl_family == AF_LINK && dl->sdl_type == IFT_ETHER) {
+        std::string if_name (dl->sdl_data, dl->sdl_nlen);
+        if (if_name == this->dev_name_) {
+          memcpy (this->hw_addr_, LLADDR(dl), sizeof(this->hw_addr_));
+          /*
+          printf("%s: %02x:%02x:%02x:%02x:%02x:%02x\n", if_name.c_str(),
+                 addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]); 
+          */
+          break;
+        }
+      }
+    } 
+    freeifaddrs(ifa_list); 
 
     return true;
   }
