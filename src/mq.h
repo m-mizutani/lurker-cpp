@@ -28,6 +28,7 @@
 #define SRC_MQ_H__
 
 #include <map>
+#include <string>
 #include <sstream>
 
 namespace lurker {

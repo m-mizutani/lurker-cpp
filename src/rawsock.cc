@@ -27,6 +27,7 @@
 #include "./rawsock.h"
 #include "./debug.h"
 #include <unistd.h>
+#include <iostream>
 
 #ifdef _WIN64
 //define something for Windows (64-bit)
@@ -55,7 +56,16 @@
 
 #elif __linux
 // linux
-#error
+#include <arpa/inet.h>
+#include <linux/if_packet.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <net/if.h>
+#include <netinet/ether.h>
+
 #elif __unix // all unices not caught above
 // Unix
 #error
@@ -69,7 +79,9 @@ namespace lurker {
   RawSock::RawSock(const std::string &dev_name) : 
     sock_(0),
     dev_name_(dev_name) {
-    this->open();
+    if (!this->open()) {
+      std::cerr << this->err_.str() << std::endl;
+    }
   }
   RawSock::~RawSock() {
     if (this->sock_ > 0) {
@@ -140,14 +152,15 @@ namespace lurker {
       if (dl->sdl_family == AF_LINK && dl->sdl_type == IFT_ETHER) {
         std::string if_name (dl->sdl_data, dl->sdl_nlen);
 
-        debug(true, "if_name: %s", if_name.c_str());
+        debug(false, "if_name: %s", if_name.c_str());
         if (if_name == this->dev_name_) {
           memcpy (this->hw_addr_, LLADDR(dl), sizeof(this->hw_addr_));
 
+          /*
           char *addr = LLADDR(dl);
           printf("%s: %02x:%02x:%02x:%02x:%02x:%02x\n", if_name.c_str(),
                  addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]); 
-
+          */
           break;
         }
       }
@@ -169,7 +182,54 @@ namespace lurker {
 
 #elif __linux
 // linux
-#error
+
+  bool RawSock::open() {
+    if ((this->sock_ = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) == -1) {
+      this->err_ << "socket: " << strerror(errno);
+      return false;
+    }
+
+    struct ifreq if_idx, if_mac;
+    memset(&if_idx, 0, sizeof(struct ifreq));
+    memset(&if_mac, 0, sizeof(struct ifreq));
+    strncpy(if_idx.ifr_name, this->dev_name_.c_str(), IFNAMSIZ-1);
+    strncpy(if_mac.ifr_name, this->dev_name_.c_str(), IFNAMSIZ-1);
+
+    debug(false, "bind to %s", if_idx.ifr_name);
+    if (ioctl(this->sock_, SIOCGIFINDEX, &if_idx) < 0) {
+      this->err_ << "ioctl, SIOCGIFINDEX: " << strerror(errno);
+      return false;
+    }
+
+    struct sockaddr_ll sa;
+    sa.sll_family   = AF_PACKET;
+    sa.sll_protocol = htons(ETH_P_ALL);
+    sa.sll_ifindex  = if_idx.ifr_ifindex;
+    if(bind(this->sock_, (struct sockaddr *)&sa, sizeof(sa)) < 0){
+      this->err_ << "bind: " << strerror(errno);
+      return false;
+    }
+
+      
+    debug(false, "obtain MAC address from %s", if_idx.ifr_name);
+    if (ioctl(this->sock_, SIOCGIFHWADDR, &if_mac) < 0) {
+      this->err_ << "ioctl, SIOCGIFHWADDR: " << strerror(errno);
+      return false;
+    }
+
+    memcpy (this->hw_addr_, &if_mac.ifr_hwaddr.sa_data, sizeof(this->hw_addr_));
+    return true;
+  }
+  int RawSock::write(void *ptr, size_t len) {
+    int rc;
+    rc = ::write(this->sock_, ptr, len);
+    if (rc < 0) {
+      this->err_ << "write: " << strerror(errno);
+    }
+
+    return rc;
+  }
+
 #elif __unix // all unices not caught above
 // Unix
 #error

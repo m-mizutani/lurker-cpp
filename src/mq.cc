@@ -25,39 +25,43 @@
  */
 
 #include "./mq.h"
+#include <string.h>
 #include <zmq.h>
 #include <assert.h>
 
 namespace lurker {
   MsgQueue::MsgQueue(int port) : port_(port), ctx_(NULL), pub_(NULL) {
-    this->ctx_ = zmq_ctx_new ();
-    this->pub_ = zmq_socket (this->ctx_, ZMQ_PUB);
-
+    // this->ctx_ = zmq_ctx_new ();
+    // this->pub_ = zmq_socket (this->ctx_, ZMQ_PUB);
+    /*
     std::stringstream ss;
     ss <<  "tcp://*:" << this->port_;
     int rc = zmq_bind (this->pub_, ss.str().c_str());
     assert (rc == 0);
+    */
   }
   MsgQueue::~MsgQueue() {
+    /*
     if (this->pub_) {
       zmq_close(this->pub_);
     }
     if (this->ctx_) {
-      zmq_ctx_destroy(this->ctx_);
+      // zmq_ctx_destroy(this->ctx_);
     }
+    */
   }
   
   bool MsgQueue::push(const std::map<std::string, std::string> &msg) {
-    /* Create a new message, allocating 6 bytes for message content */
+    /*
     zmq_msg_t m;
     int rc = zmq_msg_init_size (&m, 6);
     assert (rc == 0);
-    /* Fill in message content with 'AAAAAA' */
+
     memset (zmq_msg_data (&m), 'A', 6);
-    /* Send the message to the socket */
+
     rc = zmq_send (this->pub_, &m, 0, ZMQ_SNDMORE); 
     assert (rc == 0);
-
+    */
     return true;
   }
 

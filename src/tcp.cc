@@ -151,7 +151,9 @@ namespace lurker {
 
     if (this->sock_) {
       debug(DBG, "response TCP to %s", p.param("ipv4.src")->repr().c_str());
-      this->sock_->write(pkt, pkt_len);
+      if (0 > this->sock_->write(pkt, pkt_len)) {
+        std::cout << this->sock_->errmsg() << std::endl;
+      }
     }
 
     free (pkt);
