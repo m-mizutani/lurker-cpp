@@ -24,28 +24,29 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_ARP_H__
-#define SRC_ARP_H__
+#ifndef SRC_TCP_H__
+#define SRC_TCP_H__
 
 #include <sstream>
 #include "./rawsock.h"
 
 namespace lurker {
-  class ArpHandler : public swarm::Handler {
+  class TcpHandler : public swarm::Handler {
   private:
     swarm::NetDec *nd_;
-    swarm::param_id op_;
     RawSock *sock_;
+    static const bool DBG = false;
 
   public:
-    ArpHandler(swarm::NetDec *nd);
-    ~ArpHandler();
+    TcpHandler(swarm::NetDec *nd);
+    ~TcpHandler();
     void set_sock(RawSock *sock);
     void unset_sock();
     void recv(swarm::ev_id eid, const  swarm::Property &p);
+    
   };
 
 }
 
 
-#endif  // SRC_ARP_H__
+#endif  // SRC_TCP_H__

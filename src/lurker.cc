@@ -30,15 +30,10 @@
 #include "./optparse.h"
 #include "./rawsock.h"
 #include "./arp.h"
+#include "./tcp.h"
 
 namespace lurker {
-  bool main(const optparse::Values& opt,
-            const std::vector <std::string> args) {
-    // prepare network decoder instance
-    swarm::NetDec nd;
-    ArpHandler *arph = new ArpHandler(&nd);
-    nd.set_handler("arp.request", arph);
-
+  swarm::NetCap *setup_netcap(const optparse::Values& opt) {
     // prepare network capturing instance
     swarm::NetCap *ncap = NULL;
     const std::string filter = opt["filter"];
@@ -49,11 +44,7 @@ namespace lurker {
 
       if (!pcap_dev->set_filter(filter)) {
         std::cerr << "Pcap filter error: " << pcap_dev->errmsg() << std::endl;
-        return false;
-      }
-
-      if (!arph->open_dev(dev_name)) {
-        return false;
+        return NULL;
       }
 
       ncap = pcap_dev;
@@ -62,7 +53,7 @@ namespace lurker {
 
       if (!pcap_file->set_filter(filter)) {
         std::cerr << "Pcap filter error: " << pcap_file->errmsg() << std::endl;
-        return false;
+        return NULL;
       }
 
       ncap = pcap_file;
@@ -70,6 +61,42 @@ namespace lurker {
 
     if (!ncap) {
       std::cerr << "Network interface must be specified" << std::endl;
+      return NULL;
+    }
+    
+    return ncap;
+  }
+
+  bool main(const optparse::Values& opt,
+            const std::vector <std::string> args) {
+    // prepare network decoder instance
+    swarm::NetDec nd;
+    ArpHandler *arph = NULL;
+    TcpHandler *tcph = NULL;
+
+    // setup NetCap (Open network interface or pcap file)
+    swarm::NetCap *ncap = setup_netcap(opt);
+    if (!ncap) {
+      return false;
+    }
+
+    RawSock *sock = NULL;
+    if (opt.is_set("interface")) {
+      sock = new RawSock(opt["interface"]);
+    }
+
+    if (opt.get("l2_mode")) {
+      debug(true, "L2 mode enabled");
+      arph = new ArpHandler(&nd);
+      arph->set_sock(sock);
+      nd.set_handler("arp.request", arph);
+    }
+
+    if (opt.get("l3_mode")) {
+      debug(true, "L3 mode enabled");
+      tcph = new TcpHandler(&nd);
+      tcph->set_sock(sock);
+      nd.set_handler("tcp.syn", tcph);
     }
 
     // start process
@@ -93,6 +120,10 @@ int main(int argc, char *argv[]) {
     .help("Fake address");
   psr.add_option("-f").dest("filter")
     .help("Filter");
+  psr.add_option("-2").dest("l2_mode").action("store_true")
+    .help("Enabled L2 mode, reply ARP packet");
+  psr.add_option("-3").dest("l3_mode").action("store_true")
+    .help("Enabled L3 mode, reply TCP-SYN packet");
   
   optparse::Values& opt = psr.parse_args(argc, argv);
   std::vector <std::string> args = psr.args();

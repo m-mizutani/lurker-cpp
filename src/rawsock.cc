@@ -25,6 +25,7 @@
  */
 
 #include "./rawsock.h"
+#include "./debug.h"
 #include <unistd.h>
 
 #ifdef _WIN64
@@ -50,6 +51,7 @@
 #include <net/if_types.h>
 #include <net/ethernet.h>
 #include <net/bpf.h>
+#include <errno.h>
 
 #elif __linux
 // linux
@@ -67,6 +69,7 @@ namespace lurker {
   RawSock::RawSock(const std::string &dev_name) : 
     sock_(0),
     dev_name_(dev_name) {
+    this->open();
   }
   RawSock::~RawSock() {
     if (this->sock_ > 0) {
@@ -89,7 +92,7 @@ namespace lurker {
   }
 
   const uint8_t* RawSock::hw_addr() const {
-    return &(this->hw_addr_[0]);
+    return this->hw_addr_;
   }
 
 
@@ -136,12 +139,15 @@ namespace lurker {
       struct sockaddr_dl *dl = reinterpret_cast<struct sockaddr_dl*> (ifa->ifa_addr);
       if (dl->sdl_family == AF_LINK && dl->sdl_type == IFT_ETHER) {
         std::string if_name (dl->sdl_data, dl->sdl_nlen);
+
+        debug(true, "if_name: %s", if_name.c_str());
         if (if_name == this->dev_name_) {
           memcpy (this->hw_addr_, LLADDR(dl), sizeof(this->hw_addr_));
-          /*
+
+          char *addr = LLADDR(dl);
           printf("%s: %02x:%02x:%02x:%02x:%02x:%02x\n", if_name.c_str(),
                  addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]); 
-          */
+
           break;
         }
       }

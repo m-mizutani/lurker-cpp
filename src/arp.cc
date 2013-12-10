@@ -29,6 +29,7 @@
 #include "./debug.h"
 #include "./optparse.h"
 #include "./arp.h"
+#include "./pkt.h"
 
 namespace lurker {
 
@@ -39,24 +40,23 @@ namespace lurker {
     delete this->sock_;
   }
 
-  bool ArpHandler::open_dev(const std::string &dev_name) {
-    this->sock_ = new RawSock(dev_name);
-    if (!this->sock_->open()) {
-      std::cerr << this->sock_->errmsg() << std::endl;
-      return false;
-    }
-    return true;
+  void ArpHandler::set_sock(RawSock *sock) {
+    this->sock_ = sock;
+  }
+
+  void ArpHandler::unset_sock() {
+    this->sock_ = NULL;
   }
 
   void ArpHandler::recv(swarm::ev_id eid, const  swarm::Property &p) {
-    std::cout << p.param("arp.src_hw")->repr() << std::endl;
-    std::cout << p.param("arp.dst_hw")->repr() << std::endl;
-    std::cout << p.param("arp.src_pr")->repr() << std::endl;
-    std::cout << p.param("arp.dst_pr")->repr() << std::endl;
-    std::cout << std::endl;
-      
     size_t len;
     void *ptr = p.param("arp.dst_pr")->get(&len);
+    if (this->sock_ && 
+        (len != ETHER_ADDR_LEN || 0 != memcmp(this->sock_->hw_addr(), ptr, len))) {
+      // not matched with device MAC address, ignore
+      return;
+    }
+
     size_t buf_len = sizeof(struct ether_header) + sizeof(struct arp_header);
     uint8_t *buf = reinterpret_cast<uint8_t *>(malloc(buf_len));
 
