@@ -34,7 +34,7 @@ namespace lurker {
   class ArpHandler : public swarm::Handler {
   private:
     swarm::NetDec *nd_;
-    swarm::param_id op_;
+    swarm::val_id op_;
     RawSock *sock_;
 
   public:

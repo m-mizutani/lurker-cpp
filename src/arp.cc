@@ -35,7 +35,7 @@
 namespace lurker {
 
   ArpHandler::ArpHandler(swarm::NetDec *nd) : nd_(nd), sock_(NULL) {
-    this->op_ = this->nd_->lookup_param_id("arp.op");
+    this->op_ = this->nd_->lookup_value_id("arp.op");
   }
   ArpHandler::~ArpHandler() {
     delete this->sock_;
@@ -51,7 +51,7 @@ namespace lurker {
 
   void ArpHandler::recv(swarm::ev_id eid, const  swarm::Property &p) {
     size_t len;
-    void *ptr = p.param("arp.dst_pr")->get(&len);
+    void *ptr = p.value("arp.dst_pr").ptr(&len);
     if (this->sock_ && 
         (len != ETHER_ADDR_LEN || 0 != memcmp(this->sock_->hw_addr(), ptr, len))) {
       // not matched with device MAC address, ignore
@@ -66,7 +66,7 @@ namespace lurker {
     struct arp_header *arp_hdr 
       = reinterpret_cast<struct arp_header*>(buf + sizeof(struct ether_header));
     
-    memcpy(eth_hdr->dst_, p.param("ether.src")->get(), ETHER_ADDR_LEN);
+    memcpy(eth_hdr->dst_, p.value("ether.src").ptr(), ETHER_ADDR_LEN);
     eth_hdr->type_ = htons(ETHERTYPE_ARP);
 
     arp_hdr->hw_addr_fmt_ = htons(ARPHRD_ETHER);
@@ -76,8 +76,8 @@ namespace lurker {
     arp_hdr->op_ = htons(ARPOP_REPLY);
 
     memcpy(arp_hdr->src_pr_addr_, "0123", IPV4_ADDR_LEN);
-    memcpy(arp_hdr->dst_hw_addr_, p.param("arp.src_hw")->get(), ETHER_ADDR_LEN);
-    memcpy(arp_hdr->dst_pr_addr_, p.param("arp.src_pr")->get(), IPV4_ADDR_LEN);
+    memcpy(arp_hdr->dst_hw_addr_, p.value("arp.src_hw").ptr(), ETHER_ADDR_LEN);
+    memcpy(arp_hdr->dst_pr_addr_, p.value("arp.src_pr").ptr(), IPV4_ADDR_LEN);
 
     if (this->sock_) {
       memcpy(arp_hdr->src_hw_addr_, this->sock_->hw_addr(), ETHER_ADDR_LEN);

@@ -71,14 +71,14 @@ namespace lurker {
 
   void TcpHandler::recv(swarm::ev_id eid, const  swarm::Property &p) {
     size_t hw_len;
-    void *hw_dst = p.param("ether.dst")->get(&hw_len);
+    void *hw_dst = p.value("ether.dst").ptr(&hw_len);
 
-    if (p.param("ether.type")->uint32() != ETHERTYPE_IP ||
+    if (p.value("ether.type").uint32() != ETHERTYPE_IP ||
         (0 != memcmp(hw_dst, this->sock_->hw_addr(), hw_len) && 
          hw_len == ETHER_ADDR_LEN)) {      
       debug(DBG, "Invalid packet (ether-type=%d (should be %d), dst=%s, hw_len=%zd", 
-            p.param("ether.type")->uint32(), ETHERTYPE_IP, 
-            p.param("ether.dst")->repr().c_str(), hw_len);
+            p.value("ether.type").uint32(), ETHERTYPE_IP, 
+            p.value("ether.dst").repr().c_str(), hw_len);
             
       return;
     }
@@ -95,15 +95,15 @@ namespace lurker {
       (pkt + sizeof(struct ether_header) + sizeof(struct ipv4_header));
 
     // build Ethernet header
-    ::memcpy(eth_hdr->src_, p.param("ether.dst")->get(), ETHER_ADDR_LEN);
-    ::memcpy(eth_hdr->dst_, p.param("ether.src")->get(), ETHER_ADDR_LEN);
+    ::memcpy(eth_hdr->src_, p.value("ether.dst").ptr(), ETHER_ADDR_LEN);
+    ::memcpy(eth_hdr->dst_, p.value("ether.src").ptr(), ETHER_ADDR_LEN);
     eth_hdr->type_ = htons(ETHERTYPE_IP);
 
     // build IPv4 header
     const uint16_t ipv4_tlen = sizeof(struct ipv4_header) + sizeof(struct tcp_header);
       
-    void *ipv4_src = p.param("ipv4.src")->get();
-    void *ipv4_dst = p.param("ipv4.dst")->get();
+    void *ipv4_src = p.value("ipv4.src").ptr();
+    void *ipv4_dst = p.value("ipv4.dst").ptr();
     ipv4_hdr->hdrlen_ = 5;
     ipv4_hdr->ver_ = 4;
     ipv4_hdr->tos_ = 0;
@@ -117,13 +117,13 @@ namespace lurker {
     ::memcpy(&ipv4_hdr->dst_, ipv4_src, IPV4_ADDR_LEN);
 
     // build TCP header
-    uint16_t sport = p.param("tcp.src_port")->uint32();
-    uint16_t dport = p.param("tcp.dst_port")->uint32();
+    uint16_t sport = p.value("tcp.src_port").ntoh<uint16_t>();
+    uint16_t dport = p.value("tcp.dst_port").ntoh<uint16_t>();
     
     tcp_hdr->src_port_ = htons(dport);
     tcp_hdr->dst_port_ = htons(sport);
     tcp_hdr->seq_ = random();
-    tcp_hdr->ack_ = htonl(p.param("tcp.seq")->uint32() + 1);
+    tcp_hdr->ack_ = htonl(p.value("tcp.seq").uint32() + 1);
     tcp_hdr->offset_ = 0x5;
     tcp_hdr->x2_ = 0;
     tcp_hdr->flags_ = (TCP_SYN | TCP_ACK);
@@ -150,7 +150,7 @@ namespace lurker {
                                      sizeof(struct tcp_header));
 
     if (this->sock_) {
-      debug(DBG, "response TCP to %s", p.param("ipv4.src")->repr().c_str());
+      debug(DBG, "response TCP to %s", p.value("ipv4.src").repr().c_str());
       if (0 > this->sock_->write(pkt, pkt_len)) {
         std::cout << this->sock_->errmsg() << std::endl;
       }
