@@ -27,8 +27,10 @@
 #ifndef SRC_ARP_H__
 #define SRC_ARP_H__
 
+#include <ostream>
 #include <sstream>
 #include "./rawsock.h"
+#include "./mq.h"
 
 namespace lurker {
   class ArpHandler : public swarm::Handler {
@@ -36,12 +38,16 @@ namespace lurker {
     swarm::NetDec *nd_;
     swarm::val_id op_;
     RawSock *sock_;
+    MsgQueue *mq_;
+    std::ostream *os_;
 
   public:
     ArpHandler(swarm::NetDec *nd);
     ~ArpHandler();
     void set_sock(RawSock *sock);
     void unset_sock();
+    void set_mq(MsgQueue *mq);
+    void set_os(std::ostream *os);
     void recv(swarm::ev_id eid, const  swarm::Property &p);
   };
 

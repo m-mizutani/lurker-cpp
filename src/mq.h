@@ -30,13 +30,14 @@
 #include <map>
 #include <string>
 #include <sstream>
+#include <zmq.hpp>
 
 namespace lurker {
   class MsgQueue {
   private:    
     int port_;
-    void *ctx_;
-    void *pub_;
+    zmq::context_t context_;
+    zmq::socket_t *sock_;
 
   public:
     MsgQueue(int port);

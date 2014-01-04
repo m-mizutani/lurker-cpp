@@ -57,7 +57,8 @@ namespace lurker {
     return answer;
   }
 
-  TcpHandler::TcpHandler(swarm::NetDec *nd) : nd_(nd), sock_(NULL) {
+  TcpHandler::TcpHandler(swarm::NetDec *nd) : 
+    nd_(nd), sock_(NULL), mq_(NULL), os_(NULL) {
   }
   TcpHandler::~TcpHandler() {
   }
@@ -67,6 +68,12 @@ namespace lurker {
   }
   void TcpHandler::unset_sock() {
     this->sock_ = NULL;
+  }
+  void TcpHandler::set_mq(MsgQueue *mq) {
+    this->mq_ = mq;
+  }
+  void TcpHandler::set_os(std::ostream *os) {
+    this->os_ = os;
   }
 
   void TcpHandler::recv(swarm::ev_id eid, const  swarm::Property &p) {
@@ -148,6 +155,13 @@ namespace lurker {
     tcp_hdr->chksum_ = header_chksum(reinterpret_cast<uint16_t*>(buf), 
                                      sizeof(struct pseudo_ipv4_header) +
                                      sizeof(struct tcp_header));
+
+    if (this->os_) {
+      std::ostream &os = *(this->os_); // just for readability
+      os << "Perceived TCP-SYN " 
+         << p.src_addr() << ":" << p.src_port() << " -> " 
+         << p.dst_addr() << ":" << p.dst_port() << std::endl;
+    }
 
     if (this->sock_) {
       debug(DBG, "response TCP to %s", p.value("ipv4.src").repr().c_str());

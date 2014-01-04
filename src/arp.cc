@@ -34,7 +34,8 @@
 
 namespace lurker {
 
-  ArpHandler::ArpHandler(swarm::NetDec *nd) : nd_(nd), sock_(NULL) {
+  ArpHandler::ArpHandler(swarm::NetDec *nd) : 
+    nd_(nd), sock_(NULL), mq_(NULL), os_(NULL) {
     this->op_ = this->nd_->lookup_value_id("arp.op");
   }
   ArpHandler::~ArpHandler() {
@@ -49,14 +50,26 @@ namespace lurker {
     this->sock_ = NULL;
   }
 
+  void ArpHandler::set_os(std::ostream *os) {
+    this->os_ = os;
+  }
+
+  void ArpHandler::set_mq(MsgQueue *mq) {
+    this->mq_ = mq;
+  }
+
   void ArpHandler::recv(swarm::ev_id eid, const  swarm::Property &p) {
     size_t len;
     void *ptr = p.value("arp.dst_pr").ptr(&len);
+    debug(1, "arp recv");
+
+    /*
     if (this->sock_ && 
         (len != ETHER_ADDR_LEN || 0 != memcmp(this->sock_->hw_addr(), ptr, len))) {
       // not matched with device MAC address, ignore
       return;
     }
+    */
 
     size_t buf_len = sizeof(struct ether_header) + sizeof(struct arp_header);
     uint8_t *buf = reinterpret_cast<uint8_t *>(malloc(buf_len));
@@ -75,9 +88,19 @@ namespace lurker {
     arp_hdr->pr_addr_len_ = 4;
     arp_hdr->op_ = htons(ARPOP_REPLY);
 
-    memcpy(arp_hdr->src_pr_addr_, "0123", IPV4_ADDR_LEN);
+    memcpy(arp_hdr->src_hw_addr_, this->sock_->hw_addr(), ETHER_ADDR_LEN);
+    memcpy(arp_hdr->src_pr_addr_, p.value("arp.dst_pr").ptr(), IPV4_ADDR_LEN);
     memcpy(arp_hdr->dst_hw_addr_, p.value("arp.src_hw").ptr(), ETHER_ADDR_LEN);
     memcpy(arp_hdr->dst_pr_addr_, p.value("arp.src_pr").ptr(), IPV4_ADDR_LEN);
+
+    if (this->os_) {
+      std::ostream &os = *(this->os_); // just for readability
+      os << "Perceived ARP Request " 
+         << p.value("arp.src_pr").repr() 
+         << "(" << p.value("arp.src_hw").repr() << ") -> " 
+         << p.value("arp.dst_pr").repr() 
+         << "(" << p.value("arp.dst_hw").repr() << ")" << std::endl;
+    }
 
     if (this->sock_) {
       memcpy(arp_hdr->src_hw_addr_, this->sock_->hw_addr(), ETHER_ADDR_LEN);

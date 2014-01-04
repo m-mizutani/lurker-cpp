@@ -28,7 +28,9 @@
 #define SRC_TCP_H__
 
 #include <sstream>
+#include <ostream>
 #include "./rawsock.h"
+#include "./mq.h"
 
 namespace lurker {
   class TcpHandler : public swarm::Handler {
@@ -36,6 +38,8 @@ namespace lurker {
     swarm::NetDec *nd_;
     RawSock *sock_;
     static const bool DBG = false;
+    MsgQueue *mq_;
+    std::ostream *os_;
 
   public:
     TcpHandler(swarm::NetDec *nd);
@@ -43,7 +47,8 @@ namespace lurker {
     void set_sock(RawSock *sock);
     void unset_sock();
     void recv(swarm::ev_id eid, const  swarm::Property &p);
-    
+    void set_mq(MsgQueue *mq);    
+    void set_os(std::ostream *os);
   };
 
 }

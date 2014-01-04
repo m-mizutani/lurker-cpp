@@ -26,16 +26,22 @@
 
 #include "./mq.h"
 #include <string.h>
-#include <zmq.h>
+// #include <zmq.h>
+#include <zmq.hpp>
+
 #include <assert.h>
 
 namespace lurker {
-  MsgQueue::MsgQueue(int port) : port_(port), ctx_(NULL), pub_(NULL) {
+  MsgQueue::MsgQueue(int port) : port_(port), context_(1) {
+    std::stringstream ss;
+    ss <<  "tcp://*:" << this->port_;
+
+    this->sock_ = new zmq::socket_t (this->context_, ZMQ_PUB);
+    this->sock_->bind(ss.str().c_str());
+
     // this->ctx_ = zmq_ctx_new ();
     // this->pub_ = zmq_socket (this->ctx_, ZMQ_PUB);
     /*
-    std::stringstream ss;
-    ss <<  "tcp://*:" << this->port_;
     int rc = zmq_bind (this->pub_, ss.str().c_str());
     assert (rc == 0);
     */
@@ -52,6 +58,10 @@ namespace lurker {
   }
   
   bool MsgQueue::push(const std::map<std::string, std::string> &msg) {
+    zmq::message_t message(20);
+    snprintf(static_cast<char*>(message.data()), 20, "hoge");
+    this->sock_->send(message);
+
     /*
     zmq_msg_t m;
     int rc = zmq_msg_init_size (&m, 6);

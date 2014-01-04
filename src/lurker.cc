@@ -25,12 +25,14 @@
  */
 
 #include <swarm.h>
+#include <fstream>
 
 #include "./debug.h"
 #include "./optparse.h"
 #include "./rawsock.h"
 #include "./arp.h"
 #include "./tcp.h"
+#include "./mq.h"
 
 namespace lurker {
   swarm::NetCap *setup_netcap(const optparse::Values& opt) {
@@ -80,15 +82,48 @@ namespace lurker {
       return false;
     }
 
-    RawSock *sock = NULL;
+    RawSock *sock = NULL;    
+    MsgQueue *mq = NULL;
+
     if (opt.is_set("interface")) {
       sock = new RawSock(opt["interface"]);
+    }
+
+    if (opt.is_set("publish")) {
+      char *e;
+      unsigned int port = strtoul(opt["publish"].c_str(), &e, 0);
+      if (*e != '\0' || port <= 0 || 65355 <= port) {
+        std::cerr << 
+          "publish(-p) option should be number, and 0 < port < 65355: " << 
+          opt["publish"] << std::endl;
+        return false;
+      }
+      mq = new MsgQueue(port);
+    }
+
+    std::ostream *out = NULL;
+    if (opt.is_set("output")) {
+      if (opt["output"] == "-") {
+        std::cerr << "NOTE: output to stdout" << std::endl;
+        out = &std::cout;
+      } else {
+        std::ofstream *ofs = new std::ofstream();
+        ofs->open(opt["output"], std::ofstream::out | std::ofstream::app);
+        if (!ofs->is_open()) {
+          std::cerr << "File open error: " << opt["output"] << std::endl;
+          delete ofs;
+          return false;
+        }
+        out = ofs;
+      }
     }
 
     if (opt.get("l2_mode")) {
       debug(true, "L2 mode enabled");
       arph = new ArpHandler(&nd);
       arph->set_sock(sock);
+      arph->set_mq(mq);
+      arph->set_os(out);
       nd.set_handler("arp.request", arph);
     }
 
@@ -96,6 +131,8 @@ namespace lurker {
       debug(true, "L3 mode enabled");
       tcph = new TcpHandler(&nd);
       tcph->set_sock(sock);
+      tcph->set_mq(mq);
+      tcph->set_os(out);
       nd.set_handler("tcp.syn", tcph);
     }
 
@@ -104,6 +141,11 @@ namespace lurker {
     if (!ncap->ready() || !ncap->start()) {
       std::cerr << ncap->errmsg() << std::endl;
       return false;
+    }
+
+    // clean up
+    if (out != &std::cout) {
+      delete out;
     }
 
     return true;
@@ -124,6 +166,10 @@ int main(int argc, char *argv[]) {
     .help("Enabled L2 mode, reply ARP packet");
   psr.add_option("-3").dest("l3_mode").action("store_true")
     .help("Enabled L3 mode, reply TCP-SYN packet");
+  psr.add_option("-p").dest("publish").metavar("INT")
+    .help("Publishing result as message queue, should provide zmq port number");
+  psr.add_option("-o").dest("output").metavar("STRING")
+    .help("Output file name. '-' means stdout");
   
   optparse::Values& opt = psr.parse_args(argc, argv);
   std::vector <std::string> args = psr.args();
