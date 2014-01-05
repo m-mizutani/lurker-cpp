@@ -13,5 +13,5 @@ LINK_DIRECTORIES(${LIB_DIR})
 FILE(GLOB BASESRCS "src/*.cc")
 
 ADD_EXECUTABLE(lurker ${BASESRCS})
-TARGET_LINK_LIBRARIES(lurker swarm zmq)
+TARGET_LINK_LIBRARIES(lurker swarm zmq msgpack)
 

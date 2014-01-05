@@ -42,7 +42,7 @@ namespace lurker {
   public:
     MsgQueue(int port);
     ~MsgQueue();
-    bool push(const std::map<std::string, std::string> &msg);
+    bool push(const void *ptr, const size_t len);
   };
 }
 

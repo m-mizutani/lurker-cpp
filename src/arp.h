@@ -40,6 +40,7 @@ namespace lurker {
     RawSock *sock_;
     MsgQueue *mq_;
     std::ostream *os_;
+    bool active_mode_;
 
   public:
     ArpHandler(swarm::NetDec *nd);
@@ -49,6 +50,8 @@ namespace lurker {
     void set_mq(MsgQueue *mq);
     void set_os(std::ostream *os);
     void recv(swarm::ev_id eid, const  swarm::Property &p);
+    void enable_active_mode();
+    void disable_active_mode();
   };
 
 }

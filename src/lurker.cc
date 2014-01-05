@@ -118,22 +118,26 @@ namespace lurker {
       }
     }
 
+    arph = new ArpHandler(&nd);
+    arph->set_mq(mq);
+    arph->set_os(out);
+    nd.set_handler("arp.request", arph);
+
     if (opt.get("l2_mode")) {
-      debug(true, "L2 mode enabled");
-      arph = new ArpHandler(&nd);
+      debug(true, "L2 response mode enabled");
+      arph->enable_active_mode();
       arph->set_sock(sock);
-      arph->set_mq(mq);
-      arph->set_os(out);
-      nd.set_handler("arp.request", arph);
     }
 
+    tcph = new TcpHandler(&nd);
+    tcph->set_mq(mq);
+    tcph->set_os(out);
+    nd.set_handler("tcp.syn", tcph);
+
     if (opt.get("l3_mode")) {
-      debug(true, "L3 mode enabled");
-      tcph = new TcpHandler(&nd);
+      debug(true, "L3 response mode enabled");
+      tcph->enable_active_mode();
       tcph->set_sock(sock);
-      tcph->set_mq(mq);
-      tcph->set_os(out);
-      nd.set_handler("tcp.syn", tcph);
     }
 
     // start process

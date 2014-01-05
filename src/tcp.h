@@ -40,6 +40,10 @@ namespace lurker {
     static const bool DBG = false;
     MsgQueue *mq_;
     std::ostream *os_;
+    bool active_mode_;
+
+    static size_t build_tcp_synack_packet(const swarm::Property &p,
+                                          void *buffer, size_t len);
 
   public:
     TcpHandler(swarm::NetDec *nd);
@@ -49,6 +53,8 @@ namespace lurker {
     void recv(swarm::ev_id eid, const  swarm::Property &p);
     void set_mq(MsgQueue *mq);    
     void set_os(std::ostream *os);
+    void enable_active_mode();
+    void disable_active_mode();
   };
 
 }

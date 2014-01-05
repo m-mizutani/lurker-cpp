@@ -26,6 +26,7 @@
 
 #include <swarm.h>
 #include <string.h>
+#include <msgpack.hpp>
 
 #include "./debug.h"
 #include "./optparse.h"
@@ -35,7 +36,7 @@
 namespace lurker {
 
   ArpHandler::ArpHandler(swarm::NetDec *nd) : 
-    nd_(nd), sock_(NULL), mq_(NULL), os_(NULL) {
+    nd_(nd), sock_(NULL), mq_(NULL), os_(NULL), active_mode_(false) {
     this->op_ = this->nd_->lookup_value_id("arp.op");
   }
   ArpHandler::~ArpHandler() {
@@ -57,41 +58,34 @@ namespace lurker {
   void ArpHandler::set_mq(MsgQueue *mq) {
     this->mq_ = mq;
   }
+  void ArpHandler::enable_active_mode() {
+    this->active_mode_ = true;
+  }
+  void ArpHandler::disable_active_mode() {
+    this->active_mode_ = false;
+  }
 
   void ArpHandler::recv(swarm::ev_id eid, const  swarm::Property &p) {
-    size_t len;
-    void *ptr = p.value("arp.dst_pr").ptr(&len);
-    debug(1, "arp recv");
 
-    /*
-    if (this->sock_ && 
-        (len != ETHER_ADDR_LEN || 0 != memcmp(this->sock_->hw_addr(), ptr, len))) {
-      // not matched with device MAC address, ignore
-      return;
+    if (this->mq_) {
+      msgpack::sbuffer buf;
+      msgpack::packer<msgpack::sbuffer> pk(&buf);
+      pk.pack_map(5);
+
+      pk.pack(std::string("src_addr"));
+      pk.pack(p.value("arp.src_pr").repr());
+      pk.pack(std::string("dst_addr"));
+      pk.pack(p.value("arp.dst_pr").repr());
+
+      pk.pack(std::string("src_hw"));
+      pk.pack(p.value("arp.src_hw").repr());
+      pk.pack(std::string("dst_hw"));
+      pk.pack(p.value("arp.dst_hw").repr());
+
+      pk.pack(std::string("event"));
+      pk.pack(std::string("ARP-REQ"));
+      this->mq_->push(buf.data(), buf.size());
     }
-    */
-
-    size_t buf_len = sizeof(struct ether_header) + sizeof(struct arp_header);
-    uint8_t *buf = reinterpret_cast<uint8_t *>(malloc(buf_len));
-
-    struct ether_header *eth_hdr 
-      = reinterpret_cast<struct ether_header*>(buf);
-    struct arp_header *arp_hdr 
-      = reinterpret_cast<struct arp_header*>(buf + sizeof(struct ether_header));
-    
-    memcpy(eth_hdr->dst_, p.value("ether.src").ptr(), ETHER_ADDR_LEN);
-    eth_hdr->type_ = htons(ETHERTYPE_ARP);
-
-    arp_hdr->hw_addr_fmt_ = htons(ARPHRD_ETHER);
-    arp_hdr->pr_addr_fmt_ = htons(ETHERTYPE_IP);
-    arp_hdr->hw_addr_len_ = 6;
-    arp_hdr->pr_addr_len_ = 4;
-    arp_hdr->op_ = htons(ARPOP_REPLY);
-
-    memcpy(arp_hdr->src_hw_addr_, this->sock_->hw_addr(), ETHER_ADDR_LEN);
-    memcpy(arp_hdr->src_pr_addr_, p.value("arp.dst_pr").ptr(), IPV4_ADDR_LEN);
-    memcpy(arp_hdr->dst_hw_addr_, p.value("arp.src_hw").ptr(), ETHER_ADDR_LEN);
-    memcpy(arp_hdr->dst_pr_addr_, p.value("arp.src_pr").ptr(), IPV4_ADDR_LEN);
 
     if (this->os_) {
       std::ostream &os = *(this->os_); // just for readability
@@ -102,14 +96,34 @@ namespace lurker {
          << "(" << p.value("arp.dst_hw").repr() << ")" << std::endl;
     }
 
-    if (this->sock_) {
+    
+    if (this->sock_ && this->active_mode_) {
+      size_t buf_len = sizeof(struct ether_header) + sizeof(struct arp_header);
+      uint8_t *buf = reinterpret_cast<uint8_t *>(malloc(buf_len));
+
+      struct ether_header *eth_hdr 
+        = reinterpret_cast<struct ether_header*>(buf);
+      struct arp_header *arp_hdr 
+        = reinterpret_cast<struct arp_header*>(buf + sizeof(struct ether_header));
+    
+      memcpy(eth_hdr->dst_, p.value("ether.src").ptr(), ETHER_ADDR_LEN);
+      eth_hdr->type_ = htons(ETHERTYPE_ARP);
+
+      arp_hdr->hw_addr_fmt_ = htons(ARPHRD_ETHER);
+      arp_hdr->pr_addr_fmt_ = htons(ETHERTYPE_IP);
+      arp_hdr->hw_addr_len_ = 6;
+      arp_hdr->pr_addr_len_ = 4;
+      arp_hdr->op_ = htons(ARPOP_REPLY);
+
+      memcpy(arp_hdr->src_hw_addr_, this->sock_->hw_addr(), ETHER_ADDR_LEN);
+      memcpy(arp_hdr->src_pr_addr_, p.value("arp.dst_pr").ptr(), IPV4_ADDR_LEN);
+      memcpy(arp_hdr->dst_hw_addr_, p.value("arp.src_hw").ptr(), ETHER_ADDR_LEN);
+      memcpy(arp_hdr->dst_pr_addr_, p.value("arp.src_pr").ptr(), IPV4_ADDR_LEN);
+
       memcpy(arp_hdr->src_hw_addr_, this->sock_->hw_addr(), ETHER_ADDR_LEN);
       this->sock_->write(buf, buf_len);
-    } else {
-      memset(arp_hdr->src_hw_addr_, 0, ETHER_ADDR_LEN);
+      free(buf);
     }
-    // recv arp request
-    free(buf);
   }
 }
 

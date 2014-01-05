@@ -26,6 +26,7 @@
 
 #include <swarm.h>
 #include <string.h>
+#include <msgpack.hpp>
 
 #include "./debug.h"
 #include "./optparse.h"
@@ -57,8 +58,8 @@ namespace lurker {
     return answer;
   }
 
-  TcpHandler::TcpHandler(swarm::NetDec *nd) : 
-    nd_(nd), sock_(NULL), mq_(NULL), os_(NULL) {
+  TcpHandler::TcpHandler(swarm::NetDec *nd) :
+    nd_(nd), sock_(NULL), mq_(NULL), os_(NULL), active_mode_(false) {
   }
   TcpHandler::~TcpHandler() {
   }
@@ -75,24 +76,18 @@ namespace lurker {
   void TcpHandler::set_os(std::ostream *os) {
     this->os_ = os;
   }
+  void TcpHandler::enable_active_mode() {
+    this->active_mode_ = true;
+  }
+  void TcpHandler::disable_active_mode() {
+    this->active_mode_ = false;
+  }
 
-  void TcpHandler::recv(swarm::ev_id eid, const  swarm::Property &p) {
-    size_t hw_len;
-    void *hw_dst = p.value("ether.dst").ptr(&hw_len);
-
-    if (p.value("ether.type").uint32() != ETHERTYPE_IP ||
-        (0 != memcmp(hw_dst, this->sock_->hw_addr(), hw_len) && 
-         hw_len == ETHER_ADDR_LEN)) {      
-      debug(DBG, "Invalid packet (ether-type=%d (should be %d), dst=%s, hw_len=%zd", 
-            p.value("ether.type").uint32(), ETHERTYPE_IP, 
-            p.value("ether.dst").repr().c_str(), hw_len);
-            
-      return;
-    }
-
+  size_t TcpHandler::build_tcp_synack_packet(const swarm::Property &p,
+                                             void *data, size_t len) {
     // assign header
-    const size_t pkt_len = 
-      sizeof(struct ether_header) + sizeof(struct ipv4_header) + 
+    const size_t pkt_len =
+      sizeof(struct ether_header) + sizeof(struct ipv4_header) +
       sizeof(struct tcp_header);
     uint8_t *pkt = static_cast<uint8_t*> (malloc(pkt_len));
     auto *eth_hdr = reinterpret_cast<struct ether_header*>(pkt);
@@ -108,7 +103,7 @@ namespace lurker {
 
     // build IPv4 header
     const uint16_t ipv4_tlen = sizeof(struct ipv4_header) + sizeof(struct tcp_header);
-      
+
     void *ipv4_src = p.value("ipv4.src").ptr();
     void *ipv4_dst = p.value("ipv4.dst").ptr();
     ipv4_hdr->hdrlen_ = 5;
@@ -126,7 +121,7 @@ namespace lurker {
     // build TCP header
     uint16_t sport = p.value("tcp.src_port").ntoh<uint16_t>();
     uint16_t dport = p.value("tcp.dst_port").ntoh<uint16_t>();
-    
+
     tcp_hdr->src_port_ = htons(dport);
     tcp_hdr->dst_port_ = htons(sport);
     tcp_hdr->seq_ = random();
@@ -138,7 +133,7 @@ namespace lurker {
     tcp_hdr->chksum_ = 0;
     tcp_hdr->urgptr_ = 0;
 
-    ipv4_hdr->chksum_ = header_chksum(reinterpret_cast<uint16_t*>(ipv4_hdr), 
+    ipv4_hdr->chksum_ = header_chksum(reinterpret_cast<uint16_t*>(ipv4_hdr),
                                       sizeof(struct ipv4_header));
 
     uint8_t buf[1024];
@@ -150,27 +145,68 @@ namespace lurker {
     p_hdr->th_off_ = htons(sizeof(ipv4_header));
     p_hdr->x0_ = 0;
 
-    ::memcpy(buf + sizeof(struct pseudo_ipv4_header), tcp_hdr, 
+    ::memcpy(buf + sizeof(struct pseudo_ipv4_header), tcp_hdr,
              sizeof(struct tcp_header));
-    tcp_hdr->chksum_ = header_chksum(reinterpret_cast<uint16_t*>(buf), 
+    tcp_hdr->chksum_ = header_chksum(reinterpret_cast<uint16_t*>(buf),
                                      sizeof(struct pseudo_ipv4_header) +
                                      sizeof(struct tcp_header));
 
+    // Copy built packet data to buffer from argument.
+    size_t rc = 0;
+    if (len < pkt_len) {
+      ::memcpy(data, pkt, pkt_len);
+      rc = pkt_len;
+    }
+
+    free(pkt);
+    return rc;
+  }
+
+  void TcpHandler::recv(swarm::ev_id eid, const  swarm::Property &p) {
+
     if (this->os_) {
       std::ostream &os = *(this->os_); // just for readability
-      os << "Perceived TCP-SYN " 
-         << p.src_addr() << ":" << p.src_port() << " -> " 
+      os << "Perceived TCP-SYN "
+         << p.src_addr() << ":" << p.src_port() << " -> "
          << p.dst_addr() << ":" << p.dst_port() << std::endl;
     }
 
-    if (this->sock_) {
-      debug(DBG, "response TCP to %s", p.value("ipv4.src").repr().c_str());
-      if (0 > this->sock_->write(pkt, pkt_len)) {
-        std::cout << this->sock_->errmsg() << std::endl;
-      }
+    if (this->mq_) {
+      msgpack::sbuffer buf;
+      msgpack::packer<msgpack::sbuffer> pk(&buf);
+      pk.pack_map(5);
+      pk.pack(std::string("src_addr"));
+      pk.pack(p.src_addr());
+      pk.pack(std::string("dst_addr"));
+      pk.pack(p.dst_addr());
+      pk.pack(std::string("src_port"));
+      pk.pack(p.src_port());
+      pk.pack(std::string("dst_port"));
+      pk.pack(p.dst_port());
+      pk.pack(std::string("event"));
+      pk.pack(std::string("TCP-SYN"));
+      this->mq_->push(buf.data(), buf.size());
     }
 
-    free (pkt);
+    if (this->sock_ && this->active_mode_) {
+      size_t hw_len;
+      void *hw_dst = p.value("ether.dst").ptr(&hw_len);
+
+      if (p.value("ether.type").uint32() != ETHERTYPE_IP ||
+          (0 != memcmp(hw_dst, this->sock_->hw_addr(), hw_len) &&
+           hw_len == ETHER_ADDR_LEN)) {
+        debug(DBG, "Invalid packet (ether-type=%d (should be %d), dst=%s, hw_len=%zd",
+              p.value("ether.type").uint32(), ETHERTYPE_IP,
+              p.value("ether.dst").repr().c_str(), hw_len);
+      } else {
+        uint8_t buf[1024];
+        size_t len = TcpHandler::build_tcp_synack_packet(p, buf, sizeof(buf));
+        debug(DBG, "response TCP to %s", p.value("ipv4.src").repr().c_str());
+        if (0 > this->sock_->write(buf, len)) {
+          std::cout << this->sock_->errmsg() << std::endl;
+        }
+      }
+    }
   }
 }
 
