@@ -75,6 +75,7 @@ namespace lurker {
     swarm::NetDec nd;
     ArpHandler *arph = NULL;
     TcpHandler *tcph = NULL;
+    TargetRep *tgt_rep = NULL;
 
     // setup NetCap (Open network interface or pcap file)
     swarm::NetCap *ncap = setup_netcap(opt);
@@ -123,21 +124,31 @@ namespace lurker {
     arph->set_os(out);
     nd.set_handler("arp.request", arph);
 
-    if (opt.get("l2_mode")) {
-      debug(true, "L2 response mode enabled");
-      arph->enable_active_mode();
-      arph->set_sock(sock);
-    }
-
     tcph = new TcpHandler(&nd);
     tcph->set_mq(mq);
     tcph->set_os(out);
     nd.set_handler("tcp.syn", tcph);
 
-    if (opt.get("l3_mode")) {
-      debug(true, "L3 response mode enabled");
+    if (opt.is_set("target")) {
+      // Activate arp spoof mode
+      arph->enable_active_mode();
+      arph->set_sock(sock);
+      // Activate tcp dummy syn-ack response mode
       tcph->enable_active_mode();
       tcph->set_sock(sock);
+
+      tgt_rep = new TargetRep();
+      // Insert target data to AprHandler and TcpHandler
+      for (auto it = opt.all("target").begin(); 
+           it != opt.all("target").end(); it++) {
+        if (!tgt_rep->insert(*it)) {
+          std::cerr << tgt_rep->errmsg() << std::endl;
+          return false;
+        }
+      }
+
+      arph->set_target(tgt_rep); 
+      tcph->set_target(tgt_rep);
     }
 
     // start process
@@ -162,14 +173,10 @@ int main(int argc, char *argv[]) {
     .help("Specify interface to monitor on the fly");
   psr.add_option("-r").dest("pcap_file")
     .help("Specify pcap_file, read operation only");
-  psr.add_option("-a").dest("address")
-    .help("Fake address");
+  psr.add_option("-t").dest("target").action("append")
+    .help("Target for TCP response, format) address:port");
   psr.add_option("-f").dest("filter")
     .help("Filter");
-  psr.add_option("-2").dest("l2_mode").action("store_true")
-    .help("Enabled L2 mode, reply ARP packet");
-  psr.add_option("-3").dest("l3_mode").action("store_true")
-    .help("Enabled L3 mode, reply TCP-SYN packet");
   psr.add_option("-p").dest("publish").metavar("INT")
     .help("Publishing result as message queue, should provide zmq port number");
   psr.add_option("-o").dest("output").metavar("STRING")

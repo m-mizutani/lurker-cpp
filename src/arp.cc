@@ -64,6 +64,9 @@ namespace lurker {
   void ArpHandler::disable_active_mode() {
     this->active_mode_ = false;
   }
+  void ArpHandler::set_target(const TargetRep *tgt) {
+    this->target_ = tgt;
+  }
 
   void ArpHandler::recv(swarm::ev_id eid, const  swarm::Property &p) {
 
@@ -100,7 +103,8 @@ namespace lurker {
     }
 
     
-    if (this->sock_ && this->active_mode_) {
+    if (this->sock_ && this->active_mode_ && 
+        this->target_->exists(p.value("arp.dst_pr").repr())) {
       size_t buf_len = sizeof(struct ether_header) + sizeof(struct arp_header);
       uint8_t *buf = reinterpret_cast<uint8_t *>(malloc(buf_len));
 

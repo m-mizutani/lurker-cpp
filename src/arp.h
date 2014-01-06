@@ -31,6 +31,7 @@
 #include <sstream>
 #include "./rawsock.h"
 #include "./mq.h"
+#include "./target.h"
 
 namespace lurker {
   class ArpHandler : public swarm::Handler {
@@ -41,7 +42,8 @@ namespace lurker {
     MsgQueue *mq_;
     std::ostream *os_;
     bool active_mode_;
-
+    const TargetRep *target_;
+    
   public:
     ArpHandler(swarm::NetDec *nd);
     ~ArpHandler();
@@ -52,6 +54,7 @@ namespace lurker {
     void recv(swarm::ev_id eid, const  swarm::Property &p);
     void enable_active_mode();
     void disable_active_mode();
+    void set_target(const TargetRep *tgt);
   };
 
 }

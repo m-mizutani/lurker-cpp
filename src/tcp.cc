@@ -37,9 +37,7 @@ namespace lurker {
   // IP/TCP checksum calcurator
   uint16_t header_chksum(uint16_t *ptr, int nbytes) {
     uint32_t sum = 0;
-    uint16_t oddbyte;
-
-    uint16_t answer;
+    uint16_t oddbyte, answer;
 
     for (; nbytes > 1; nbytes -= 2) {
       sum += *ptr++;
@@ -81,6 +79,9 @@ namespace lurker {
   }
   void TcpHandler::disable_active_mode() {
     this->active_mode_ = false;
+  }
+  void TcpHandler::set_target(const TargetRep *tgt) {
+    this->target_ = tgt;
   }
 
   size_t TcpHandler::build_tcp_synack_packet(const swarm::Property &p,
@@ -153,7 +154,7 @@ namespace lurker {
 
     // Copy built packet data to buffer from argument.
     size_t rc = 0;
-    if (len < pkt_len) {
+    if (pkt_len < len) {
       ::memcpy(data, pkt, pkt_len);
       rc = pkt_len;
     }
@@ -163,6 +164,9 @@ namespace lurker {
   }
 
   void TcpHandler::recv(swarm::ev_id eid, const  swarm::Property &p) {
+    if (!this->target_->exists(p.dst_addr(), p.dst_port())) {
+      return;
+    }
 
     if (this->os_) {
       std::ostream &os = *(this->os_); // just for readability
@@ -203,7 +207,7 @@ namespace lurker {
       } else {
         uint8_t buf[1024];
         size_t len = TcpHandler::build_tcp_synack_packet(p, buf, sizeof(buf));
-        debug(DBG, "response TCP to %s", p.value("ipv4.src").repr().c_str());
+        assert(len > 0);
         if (0 > this->sock_->write(buf, len)) {
           std::cout << this->sock_->errmsg() << std::endl;
         }

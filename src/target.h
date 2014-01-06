@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013 Masayoshi Mizutani <mizutani@sfc.wide.ad.jp>
+ * Copyright (c) 2013-2014 Masayoshi Mizutani <mizutani@sfc.wide.ad.jp>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,45 +24,29 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_TCP_H__
-#define SRC_TCP_H__
+#ifndef SRC_TARGET_H__
+#define SRC_TARGET_H__
 
-#include <sstream>
-#include <ostream>
-#include "./rawsock.h"
-#include "./mq.h"
-#include "./target.h"
+#include <string>
+#include <set>
+#include <map>
 
 namespace lurker {
-  class TcpHandler : public swarm::Handler {
-  private:
-    swarm::NetDec *nd_;
-    RawSock *sock_;
-    static const bool DBG = false;
-    MsgQueue *mq_;
-    std::ostream *os_;
-
-    // When active_mode_ is true, response TCP syn-ack packet
-    bool active_mode_;
-    const TargetRep *target_;
-
-    static size_t build_tcp_synack_packet(const swarm::Property &p,
-                                          void *buffer, size_t len);
+  class TargetRep {
+  private:    
+    // Target map by IP address (std::string) & port number (int)
+    std::map<std::string, std::set<int>* > target_;
+    std::string errmsg_;
 
   public:
-    TcpHandler(swarm::NetDec *nd);
-    ~TcpHandler();
-    void set_sock(RawSock *sock);
-    void unset_sock();
-    void recv(swarm::ev_id eid, const  swarm::Property &p);
-    void set_mq(MsgQueue *mq);    
-    void set_os(std::ostream *os);
-    void enable_active_mode();
-    void disable_active_mode();
-    void set_target(const TargetRep *tgt);
+    TargetRep();
+    ~TargetRep();
+    bool insert(const std::string &target);
+    bool exists(const std::string &addr) const;
+    bool exists(const std::string &addr, int port) const;
+    const std::string &errmsg() const;
   };
-
 }
 
 
-#endif  // SRC_TCP_H__
+#endif  // SRC_TARGET_H__

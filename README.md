@@ -30,4 +30,4 @@ Usage
 
 Sample command line
 
-    % lurker -i eth0 -f "port not 22"
+    % lurker -i eth0 -t 10.0.0.200:3128 -o -
