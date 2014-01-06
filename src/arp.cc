@@ -70,7 +70,10 @@ namespace lurker {
     if (this->mq_) {
       msgpack::sbuffer buf;
       msgpack::packer<msgpack::sbuffer> pk(&buf);
-      pk.pack_map(5);
+      pk.pack_map(6);
+
+      pk.pack(std::string("ts"));
+      pk.pack(p.ts());
 
       pk.pack(std::string("src_addr"));
       pk.pack(p.value("arp.src_pr").repr());

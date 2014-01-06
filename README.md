@@ -17,8 +17,7 @@ Install
 
     % git clone https://github.com/m-mizutani/swarm.git
     % cd swarm
-    % ./waf configure
-    % ./waf
+    % cmake . && make
     % cd ..
     % git clone https://github.com/m-mizutani/lurker.git
     % cd lurker
