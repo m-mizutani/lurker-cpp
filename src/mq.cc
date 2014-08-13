@@ -26,28 +26,46 @@
 
 #include "./mq.h"
 #include <string.h>
-// #include <zmq.h>
-#include <zmq.hpp>
-
 #include <assert.h>
 
 namespace lurker {
-  MsgQueue::MsgQueue(int port) : port_(port), context_(1), sock_(NULL) {
-    std::stringstream ss;
-    ss <<  "tcp://*:" << this->port_;
 
-    this->sock_ = new zmq::socket_t (this->context_, ZMQ_PUB);
-    this->sock_->bind(ss.str().c_str());
+  ZmqPush::ZmqPush(const std::string &uri) {
+    this->zmq_ctx_  = zmq_ctx_new();
+    this->zmq_sock_ = zmq_socket(this->zmq_ctx_, ZMQ_PUSH);
+    int rc = zmq_connect(this->zmq_sock_, uri.c_str());
+    if (rc < 0) {
+      this->set_errmsg(zmq_strerror(errno));
+    }
   }
-  MsgQueue::~MsgQueue() {
-    delete this->sock_;
+  ZmqPush::~ZmqPush() {
+    if (this->zmq_sock_) {
+      zmq_close(this->zmq_sock_);
+    }
+    if (this->zmq_ctx_) {
+      zmq_ctx_destroy(this->zmq_ctx_);
+    }
   }
-  
-  bool MsgQueue::push(const void *ptr, const size_t len) {
-    zmq::message_t message(len);
-    ::memcpy(message.data(), ptr, len);
-    this->sock_->send(message);
+  bool ZmqPush::enque(const void *ptr, const size_t len) {
     return true;
   }
+
+
+  ZmqPub::ZmqPub(int port) : port_(port) {
+    this->zmq_ctx_  = zmq_ctx_new();
+    this->zmq_sock_ = zmq_socket(this->zmq_ctx_, ZMQ_PUSH);
+  }
+  ZmqPub::~ZmqPub() {
+    if (this->zmq_sock_) {
+      zmq_close(this->zmq_sock_);
+    }
+    if (this->zmq_ctx_) {
+      zmq_ctx_destroy(this->zmq_ctx_);
+    }
+  }
+  bool ZmqPub::enque(const void *ptr, const size_t len) {
+    return true;
+  }
+
 }
 

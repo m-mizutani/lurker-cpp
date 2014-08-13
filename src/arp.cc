@@ -36,7 +36,7 @@
 namespace lurker {
 
   ArpHandler::ArpHandler(swarm::NetDec *nd) : 
-    nd_(nd), sock_(NULL), mq_(NULL), os_(NULL), active_mode_(false) {
+    nd_(nd), sock_(NULL), queue_(NULL), os_(NULL), active_mode_(false) {
     this->op_ = this->nd_->lookup_value_id("arp.op");
   }
   ArpHandler::~ArpHandler() {
@@ -55,8 +55,8 @@ namespace lurker {
     this->os_ = os;
   }
 
-  void ArpHandler::set_mq(MsgQueue *mq) {
-    this->mq_ = mq;
+  void ArpHandler::set_mq(OutputQueue *queue) {
+    this->queue_ = queue;
   }
   void ArpHandler::enable_active_mode() {
     this->active_mode_ = true;
@@ -70,7 +70,7 @@ namespace lurker {
 
   void ArpHandler::recv(swarm::ev_id eid, const  swarm::Property &p) {
 
-    if (this->mq_) {
+    if (this->queue_) {
       msgpack::sbuffer buf;
       msgpack::packer<msgpack::sbuffer> pk(&buf);
       pk.pack_map(6);
@@ -90,7 +90,7 @@ namespace lurker {
 
       pk.pack(std::string("event"));
       pk.pack(std::string("ARP-REQ"));
-      this->mq_->push(buf.data(), buf.size());
+      this->queue_->enque(buf.data(), buf.size());
     }
 
     if (this->os_) {

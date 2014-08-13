@@ -84,7 +84,7 @@ namespace lurker {
     }
 
     RawSock *sock = NULL;    
-    MsgQueue *mq = NULL;
+    OutputQueue *mq = NULL;
 
     if (opt.is_set("interface")) {
       sock = new RawSock(opt["interface"]);
@@ -99,7 +99,7 @@ namespace lurker {
           opt["publish"] << std::endl;
         return false;
       }
-      mq = new MsgQueue(port);
+      mq = new ZmqPub(port);
     }
 
     std::ostream *out = NULL;
@@ -109,7 +109,7 @@ namespace lurker {
         out = &std::cout;
       } else {
         std::ofstream *ofs = new std::ofstream();
-        ofs->open(opt["output"], std::ofstream::out | std::ofstream::app);
+        ofs->open(opt["output"].c_str(), std::ofstream::out | std::ofstream::app);
         if (!ofs->is_open()) {
           std::cerr << "File open error: " << opt["output"] << std::endl;
           delete ofs;

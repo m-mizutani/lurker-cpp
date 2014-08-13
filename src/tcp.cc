@@ -68,7 +68,7 @@ namespace lurker {
   void TcpHandler::unset_sock() {
     this->sock_ = NULL;
   }
-  void TcpHandler::set_mq(MsgQueue *mq) {
+  void TcpHandler::set_mq(OutputQueue *mq) {
     this->mq_ = mq;
   }
   void TcpHandler::set_os(std::ostream *os) {
@@ -191,7 +191,7 @@ namespace lurker {
       pk.pack(p.dst_port());
       pk.pack(std::string("event"));
       pk.pack(std::string("TCP-SYN"));
-      this->mq_->push(buf.data(), buf.size());
+      this->mq_->enque(buf.data(), buf.size());
     }
 
     if (this->sock_ && this->active_mode_) {

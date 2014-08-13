@@ -39,7 +39,7 @@ namespace lurker {
     swarm::NetDec *nd_;
     RawSock *sock_;
     static const bool DBG = false;
-    MsgQueue *mq_;
+    OutputQueue *mq_;
     std::ostream *os_;
 
     // When active_mode_ is true, response TCP syn-ack packet
@@ -55,7 +55,7 @@ namespace lurker {
     void set_sock(RawSock *sock);
     void unset_sock();
     void recv(swarm::ev_id eid, const  swarm::Property &p);
-    void set_mq(MsgQueue *mq);    
+    void set_mq(OutputQueue *mq);    
     void set_os(std::ostream *os);
     void enable_active_mode();
     void disable_active_mode();

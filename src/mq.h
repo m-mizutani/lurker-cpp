@@ -30,19 +30,46 @@
 #include <map>
 #include <string>
 #include <sstream>
-#include <zmq.hpp>
+#include <zmq.h>
 
 namespace lurker {
-  class MsgQueue {
+  class OutputQueue {
+  private:
+    std::string errmsg_;
+
+  protected:
+    void set_errmsg(const std::string &errmsg) {
+      this->errmsg_ = errmsg;
+    }
+    
+  public:
+    OutputQueue() {}
+    virtual ~OutputQueue() {}
+    virtual bool enque(const void *ptr, const size_t len) = 0;
+    const std::string &errmsg() const { return this->errmsg_; }
+  };
+
+  class ZmqPush : public OutputQueue {
   private:    
-    int port_;
-    zmq::context_t context_;
-    zmq::socket_t *sock_;
+    std::string uri_;
+    void *zmq_ctx_;
+    void *zmq_sock_;
 
   public:
-    MsgQueue(int port);
-    ~MsgQueue();
-    bool push(const void *ptr, const size_t len);
+    ZmqPush(const std::string &uri);
+    ~ZmqPush();
+    bool enque(const void *ptr, const size_t len);
+  };
+
+  class ZmqPub : public OutputQueue {
+  private:    
+    int port_;
+    void *zmq_ctx_;
+    void *zmq_sock_;
+  public:
+    ZmqPub(int port);
+    ~ZmqPub();
+    bool enque(const void *ptr, const size_t len);
   };
 }
 
