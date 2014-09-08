@@ -27,81 +27,68 @@
 #include <swarm.h>
 #include <fstream>
 
+#include "./lurker.h"
 #include "./debug.h"
-#include "./optparse.h"
-#include "./rawsock.h"
-#include "./arp.h"
-#include "./tcp.h"
-#include "./mq.h"
 
 namespace lurker {
-  swarm::NetCap *setup_netcap(const optparse::Values& opt) {
-    // prepare network capturing instance
-    swarm::NetCap *ncap = NULL;
-    const std::string filter = opt["filter"];
+  Lurker::Lurker(const std::string &tgt, bool dry_run) : 
+    sw_(NULL), 
+    arph_(NULL),
+    tcph_(NULL),
+    sock_(NULL),
+    mq_(NULL),
+    dry_run_(dry_run)
+  {
 
-    if (opt.is_set("interface")) {
-      const std::string dev_name = opt["interface"];
-      swarm::CapPcapDev *pcap_dev = new swarm::CapPcapDev(dev_name);
-
-      if (!pcap_dev->set_filter(filter)) {
-        std::cerr << "Pcap filter error: " << pcap_dev->errmsg() << std::endl;
-        return NULL;
-      }
-
-      ncap = pcap_dev;
-    } else if (opt.is_set("pcap_file")) {
-      swarm::CapPcapFile *pcap_file = new swarm::CapPcapFile(opt["pcap_file"]);
-
-      if (!pcap_file->set_filter(filter)) {
-        std::cerr << "Pcap filter error: " << pcap_file->errmsg() << std::endl;
-        return NULL;
-      }
-
-      ncap = pcap_file;
+    if (!this->dry_run_) {
+      this->sw_   = new swarm::SwarmDev(tgt);
+      this->sock_ = new RawSock(tgt);
+    } else {
+      this->sw_ = new swarm::SwarmFile(tgt);
     }
 
-    if (!ncap) {
-      std::cerr << "Network interface must be specified" << std::endl;
-      return NULL;
+    this->tcph_ = new TcpHandler(this->sw_);
+    this->sw_->set_handler("tcp.syn", this->tcph_);
+
+    if (!this->dry_run_) {
+      this->tcph_->enable_active_mode();
+      this->tcph_->set_sock(this->sock_);
     }
-    
-    return ncap;
+  }
+  Lurker::~Lurker() {
+  }
+  void Lurker::set_filter(const std::string &filter) {
+    /*
+    if (!this->sw_->set_filter(filter)) {
+      std::string err = "Pcap filter error: ";
+      err += pcap_dev->errmsg();
+      throw new Exception(err);
+    }
+    */
   }
 
-  bool main(const optparse::Values& opt,
-            const std::vector <std::string> args) {
-    // prepare network decoder instance
-    swarm::NetDec nd;
-    ArpHandler *arph = NULL;
-    TcpHandler *tcph = NULL;
-    TargetRep *tgt_rep = NULL;
+  void Lurker::enable_arp_spoof() {
+    this->arph_ = new ArpHandler(this->sw_);
+    // this->arph_->set_mq(mq);
+    // arph->set_os(out);
+    this->sw_->set_handler("arp.request", this->arph_);
 
-    // setup NetCap (Open network interface or pcap file)
-    swarm::NetCap *ncap = setup_netcap(opt);
-    if (!ncap) {
-      return false;
+    if (!this->dry_run_) {
+      this->arph_->enable_active_mode();
+      this->arph_->set_sock(this->sock_);
+    }
+  }
+
+  void Lurker::run() throw(Exception) {
+    if (!this->sw_->ready()) {
+      Exception("not ready");
     }
 
-    RawSock *sock = NULL;    
-    OutputQueue *mq = NULL;
+    this->sw_->start();
+  }
+}
 
-    if (opt.is_set("interface")) {
-      sock = new RawSock(opt["interface"]);
-    }
-
-    if (opt.is_set("publish")) {
-      char *e;
-      unsigned int port = strtoul(opt["publish"].c_str(), &e, 0);
-      if (*e != '\0' || port <= 0 || 65355 <= port) {
-        std::cerr << 
-          "publish(-p) option should be number, and 0 < port < 65355: " << 
-          opt["publish"] << std::endl;
-        return false;
-      }
-      mq = new ZmqPub(port);
-    }
-
+  /*
     std::ostream *out = NULL;
     if (opt.is_set("output")) {
       if (opt["output"] == "-") {
@@ -118,78 +105,6 @@ namespace lurker {
         out = ofs;
       }
     }
+  */
 
-    arph = new ArpHandler(&nd);
-    arph->set_mq(mq);
-    arph->set_os(out);
-    nd.set_handler("arp.request", arph);
-
-    tcph = new TcpHandler(&nd);
-    tcph->set_mq(mq);
-    tcph->set_os(out);
-    nd.set_handler("tcp.syn", tcph);
-
-    if (opt.is_set("target")) {
-      // Activate arp spoof mode
-      arph->enable_active_mode();
-      arph->set_sock(sock);
-      // Activate tcp dummy syn-ack response mode
-      tcph->enable_active_mode();
-      tcph->set_sock(sock);
-
-      tgt_rep = new TargetRep();
-      // Insert target data to AprHandler and TcpHandler
-      for (auto it = opt.all("target").begin(); 
-           it != opt.all("target").end(); it++) {
-        if (!tgt_rep->insert(*it)) {
-          std::cerr << tgt_rep->errmsg() << std::endl;
-          return false;
-        }
-      }
-
-      arph->set_target(tgt_rep); 
-      tcph->set_target(tgt_rep);
-    }
-
-    // start process
-    ncap->bind_netdec(&nd);
-    if (!ncap->ready() || !ncap->start()) {
-      std::cerr << ncap->errmsg() << std::endl;
-      return false;
-    }
-
-    // clean up
-    if (out != &std::cout) {
-      delete out;
-    }
-
-    return true;
-  }
-}
-
-int main(int argc, char *argv[]) {
-  optparse::OptionParser psr = optparse::OptionParser();
-  psr.add_option("-i").dest("interface")
-    .help("Specify interface to monitor on the fly");
-  psr.add_option("-r").dest("pcap_file")
-    .help("Specify pcap_file, read operation only");
-  psr.add_option("-t").dest("target").action("append")
-    .help("Target for TCP response, format) address:port");
-  psr.add_option("-f").dest("filter")
-    .help("Filter");
-  psr.add_option("-p").dest("publish").metavar("INT")
-    .help("Publishing result as message queue, should provide zmq port number");
-  psr.add_option("-o").dest("output").metavar("STRING")
-    .help("Output file name. '-' means stdout");
-  psr.add_option("-V").dest("verbose").metavar("BOOL").action("store_true")
-    .help("Verbose mode");
-  
-  optparse::Values& opt = psr.parse_args(argc, argv);
-  std::vector <std::string> args = psr.args();
-  if (lurker::main(opt, args)) {
-    return EXIT_SUCCESS;
-  } else {
-    return EXIT_FAILURE;
-  }
-}
 

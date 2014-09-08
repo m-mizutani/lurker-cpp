@@ -35,9 +35,9 @@
 
 namespace lurker {
 
-  ArpHandler::ArpHandler(swarm::NetDec *nd) : 
-    nd_(nd), sock_(NULL), queue_(NULL), os_(NULL), active_mode_(false) {
-    this->op_ = this->nd_->lookup_value_id("arp.op");
+  ArpHandler::ArpHandler(swarm::Swarm *sw) : 
+    sw_(sw), sock_(NULL), queue_(NULL), os_(NULL), active_mode_(false) {
+    this->op_ = this->sw_->lookup_value_id("arp.op");
   }
   ArpHandler::~ArpHandler() {
     delete this->sock_;
@@ -55,7 +55,7 @@ namespace lurker {
     this->os_ = os;
   }
 
-  void ArpHandler::set_mq(OutputQueue *queue) {
+  void ArpHandler::set_mq(OutputPort *queue) {
     this->queue_ = queue;
   }
   void ArpHandler::enable_active_mode() {

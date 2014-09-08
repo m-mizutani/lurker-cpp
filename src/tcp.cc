@@ -56,8 +56,8 @@ namespace lurker {
     return answer;
   }
 
-  TcpHandler::TcpHandler(swarm::NetDec *nd) :
-    nd_(nd), sock_(NULL), mq_(NULL), os_(NULL), active_mode_(false) {
+  TcpHandler::TcpHandler(swarm::Swarm *sw) :
+    sw_(sw), sock_(NULL), mq_(NULL), os_(NULL), active_mode_(false) {
   }
   TcpHandler::~TcpHandler() {
   }
@@ -68,7 +68,7 @@ namespace lurker {
   void TcpHandler::unset_sock() {
     this->sock_ = NULL;
   }
-  void TcpHandler::set_mq(OutputQueue *mq) {
+  void TcpHandler::set_mq(OutputPort *mq) {
     this->mq_ = mq;
   }
   void TcpHandler::set_os(std::ostream *os) {

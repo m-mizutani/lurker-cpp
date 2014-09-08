@@ -1,5 +1,5 @@
-/*-
- * Copyright (c) 2013 Masayoshi Mizutani <mizutani@sfc.wide.ad.jp>
+/*
+ * Copyright (c) 2014 Masayoshi Mizutani <mizutani@sfc.wide.ad.jp>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,40 +24,47 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_ARP_H__
-#define SRC_ARP_H__
+#ifndef SRC_LURKER_H__
+#define SRC_LURKER_H__
 
-#include <ostream>
 #include <sstream>
+#include <ostream>
+#include <swarm.h>
+#include "./debug.h"
+#include "./optparse.h"
 #include "./rawsock.h"
+#include "./arp.h"
+#include "./tcp.h"
 #include "./mq.h"
-#include "./target.h"
+
 
 namespace lurker {
-  class ArpHandler : public swarm::Handler {
+  class Exception : public std::exception {
   private:
-    swarm::Swarm *sw_;
-    swarm::val_id op_;
-    RawSock *sock_;
-    OutputPort *queue_;
-    std::ostream *os_;
-    bool active_mode_;
-    const TargetRep *target_;
-    
+    std::string errmsg_;
   public:
-    ArpHandler(swarm::Swarm *sw);
-    ~ArpHandler();
-    void set_sock(RawSock *sock);
-    void unset_sock();
-    void set_mq(OutputPort *queue);
-    void set_os(std::ostream *os);
-    void recv(swarm::ev_id eid, const  swarm::Property &p);
-    void enable_active_mode();
-    void disable_active_mode();
-    void set_target(const TargetRep *tgt);
+    Exception(const std::string &errmsg) : errmsg_(errmsg) {}
+    ~Exception() {}
+    virtual const char* what() const _NOEXCEPT { return this->errmsg_.c_str(); }
   };
 
+  class Lurker {
+  private:
+    swarm::Swarm *sw_;
+    ArpHandler *arph_;
+    TcpHandler *tcph_;
+    RawSock *sock_;
+    OutputPort *mq_;
+    bool dry_run_;
+
+  public:
+    Lurker(const std::string &tgt, bool dry_run=false);
+    ~Lurker();
+    void set_filter(const std::string &filter);
+    void enable_arp_spoof();
+    void run() throw(Exception);
+  };
 }
 
 
-#endif  // SRC_ARP_H__
+#endif  // SRC_LURKER_H__

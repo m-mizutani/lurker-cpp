@@ -33,7 +33,7 @@
 #include <zmq.h>
 
 namespace lurker {
-  class OutputQueue {
+  class OutputPort {
   private:
     std::string errmsg_;
 
@@ -43,13 +43,13 @@ namespace lurker {
     }
     
   public:
-    OutputQueue() {}
-    virtual ~OutputQueue() {}
+    OutputPort() {}
+    virtual ~OutputPort() {}
     virtual bool enque(const void *ptr, const size_t len) = 0;
     const std::string &errmsg() const { return this->errmsg_; }
   };
 
-  class ZmqPush : public OutputQueue {
+  class ZmqPush : public OutputPort {
   private:    
     std::string uri_;
     void *zmq_ctx_;
@@ -61,7 +61,7 @@ namespace lurker {
     bool enque(const void *ptr, const size_t len);
   };
 
-  class ZmqPub : public OutputQueue {
+  class ZmqPub : public OutputPort {
   private:    
     int port_;
     void *zmq_ctx_;

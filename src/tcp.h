@@ -29,6 +29,7 @@
 
 #include <sstream>
 #include <ostream>
+#include <swarm.h>
 #include "./rawsock.h"
 #include "./mq.h"
 #include "./target.h"
@@ -36,10 +37,10 @@
 namespace lurker {
   class TcpHandler : public swarm::Handler {
   private:
-    swarm::NetDec *nd_;
+    swarm::Swarm *sw_;
     RawSock *sock_;
     static const bool DBG = false;
-    OutputQueue *mq_;
+    OutputPort *mq_;
     std::ostream *os_;
 
     // When active_mode_ is true, response TCP syn-ack packet
@@ -50,12 +51,12 @@ namespace lurker {
                                           void *buffer, size_t len);
 
   public:
-    TcpHandler(swarm::NetDec *nd);
+    TcpHandler(swarm::Swarm *sw);
     ~TcpHandler();
     void set_sock(RawSock *sock);
     void unset_sock();
     void recv(swarm::ev_id eid, const  swarm::Property &p);
-    void set_mq(OutputQueue *mq);    
+    void set_mq(OutputPort *mq);    
     void set_os(std::ostream *os);
     void enable_active_mode();
     void disable_active_mode();
