@@ -181,6 +181,8 @@ int main(int argc, char *argv[]) {
     .help("Publishing result as message queue, should provide zmq port number");
   psr.add_option("-o").dest("output").metavar("STRING")
     .help("Output file name. '-' means stdout");
+  psr.add_option("-V").dest("verbose").metavar("BOOL").action("store_true")
+    .help("Verbose mode");
   
   optparse::Values& opt = psr.parse_args(argc, argv);
   std::vector <std::string> args = psr.args();

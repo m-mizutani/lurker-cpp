@@ -102,8 +102,8 @@ namespace lurker {
          << "(" << p.value("arp.dst_hw").repr() << ")" << std::endl;
     }
 
-    
-    if (this->sock_ && this->active_mode_ && 
+
+    if (this->sock_ && this->active_mode_ && this->target_ && 
         this->target_->exists(p.value("arp.dst_pr").repr())) {
       size_t buf_len = sizeof(struct ether_header) + sizeof(struct arp_header);
       uint8_t *buf = reinterpret_cast<uint8_t *>(malloc(buf_len));
@@ -130,7 +130,8 @@ namespace lurker {
       memcpy(arp_hdr->src_hw_addr_, this->sock_->hw_addr(), ETHER_ADDR_LEN);
       this->sock_->write(buf, buf_len);
       free(buf);
-    }
+    } 
+
   }
 }
 

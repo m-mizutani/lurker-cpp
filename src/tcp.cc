@@ -164,7 +164,7 @@ namespace lurker {
   }
 
   void TcpHandler::recv(swarm::ev_id eid, const  swarm::Property &p) {
-    if (!this->target_->exists(p.dst_addr(), p.dst_port())) {
+    if (this->target_ == NULL || !this->target_->exists(p.dst_addr(), p.dst_port())) {
       return;
     }
 
