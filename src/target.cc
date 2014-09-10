@@ -29,20 +29,20 @@
 #include <assert.h>
 
 namespace lurker {
-  TargetRep::TargetRep() {
+  TargetSet::TargetSet() {
   }
-  TargetRep::~TargetRep() {
+  TargetSet::~TargetSet() {
     for (auto it = this->target_.begin(); it != this->target_.end(); it++) {
       delete it->second;
     }
   }
 
-  bool TargetRep::insert(const std::string &target) {
+  bool TargetSet::insert(const std::string &target) {
     size_t p = target.find(":");
     if (p == std::string::npos) {
       // format is not "<address>:<port>"
       std::stringstream ss;
-      ss << "Format of target is not '<address>:<port>', " << target;
+      ss << "Format of target must be '<address>:<port>' or '<address>:*': " << target;
       this->errmsg_ = ss.str();
       return false;
     }
@@ -75,12 +75,12 @@ namespace lurker {
     return true;
   }
 
-  bool TargetRep::exists(const std::string &addr) const {
+  bool TargetSet::exists(const std::string &addr) const {
     auto it = this->target_.find(addr);
     return (it != this->target_.end());
   }
 
-  bool TargetRep::exists(const std::string &addr, int port) const {
+  bool TargetSet::exists(const std::string &addr, int port) const {
     auto it = this->target_.find(addr);
     if (it != this->target_.end()) {
       if ((it->second)->find(port) != (it->second)->end()) {
@@ -91,7 +91,7 @@ namespace lurker {
     return false;
   }
 
-  const std::string &TargetRep::errmsg() const {
+  const std::string &TargetSet::errmsg() const {
     return this->errmsg_;
   }
 

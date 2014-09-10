@@ -26,10 +26,10 @@
 
 #include <swarm.h>
 #include <string.h>
+#include <iostream>
 #include <msgpack.hpp>
 
 #include "./debug.h"
-#include "./optparse.h"
 #include "./tcp.h"
 #include "./pkt.h"
 
@@ -56,10 +56,12 @@ namespace lurker {
     return answer;
   }
 
-  TcpHandler::TcpHandler(swarm::Swarm *sw) :
-    sw_(sw), sock_(NULL), mq_(NULL), os_(NULL), active_mode_(false) {
+  TcpHandler::TcpHandler(swarm::Swarm *sw, TargetSet *target, Emitter *emitter) :
+    sw_(sw), sock_(NULL), target_(target), emitter_(emitter) {
+    this->hdlr_id_ = this->sw_->set_handler("tcp.syn", this); 
   }
   TcpHandler::~TcpHandler() {
+    this->sw_->unset_handler(this->hdlr_id_);
   }
 
   void TcpHandler::set_sock(RawSock *sock) {
@@ -68,20 +70,11 @@ namespace lurker {
   void TcpHandler::unset_sock() {
     this->sock_ = NULL;
   }
-  void TcpHandler::set_mq(OutputPort *mq) {
-    this->mq_ = mq;
+
+  void TcpHandler::set_out_stream(std::ostream *os) {
+    this->out_ = os;
   }
-  void TcpHandler::set_os(std::ostream *os) {
-    this->os_ = os;
-  }
-  void TcpHandler::enable_active_mode() {
-    this->active_mode_ = true;
-  }
-  void TcpHandler::disable_active_mode() {
-    this->active_mode_ = false;
-  }
-  void TcpHandler::set_target(const TargetRep *tgt) {
-    this->target_ = tgt;
+  void TcpHandler::unset_out_stream() {
   }
 
   size_t TcpHandler::build_tcp_synack_packet(const swarm::Property &p,
@@ -164,52 +157,53 @@ namespace lurker {
   }
 
   void TcpHandler::recv(swarm::ev_id eid, const  swarm::Property &p) {
-    if (this->target_ == NULL || !this->target_->exists(p.dst_addr(), p.dst_port())) {
-      return;
-    }
 
-    if (this->os_) {
-      std::ostream &os = *(this->os_); // just for readability
-      os << "Perceived TCP-SYN "
-         << p.src_addr() << ":" << p.src_port() << " -> "
-         << p.dst_addr() << ":" << p.dst_port() << std::endl;
-    }
+    if (this->target_->exists(p.dst_addr(), p.dst_port())) {
+      if (this->out_) {
+        std::ostream &os = *(this->out_); // just for readability
+        os << "Perceived TCP-SYN "
+           << p.src_addr() << ":" << p.src_port() << " -> "
+           << p.dst_addr() << ":" << p.dst_port() << std::endl;
+      }
 
-    if (this->mq_) {
-      msgpack::sbuffer buf;
-      msgpack::packer<msgpack::sbuffer> pk(&buf);
-      pk.pack_map(6);
-      pk.pack(std::string("ts"));
-      pk.pack(p.ts());
-      pk.pack(std::string("src_addr"));
-      pk.pack(p.src_addr());
-      pk.pack(std::string("dst_addr"));
-      pk.pack(p.dst_addr());
-      pk.pack(std::string("src_port"));
-      pk.pack(p.src_port());
-      pk.pack(std::string("dst_port"));
-      pk.pack(p.dst_port());
-      pk.pack(std::string("event"));
-      pk.pack(std::string("TCP-SYN"));
-      this->mq_->enque(buf.data(), buf.size());
-    }
+      if (this->emitter_) {
+        msgpack::sbuffer buf;
+        msgpack::packer<msgpack::sbuffer> pk(&buf);
+        pk.pack_map(6);
+        pk.pack(std::string("ts"));
+        pk.pack(p.ts());
+        pk.pack(std::string("src_addr"));
+        pk.pack(p.src_addr());
+        pk.pack(std::string("dst_addr"));
+        pk.pack(p.dst_addr());
+        pk.pack(std::string("src_port"));
+        pk.pack(p.src_port());
+        pk.pack(std::string("dst_port"));
+        pk.pack(p.dst_port());
+        pk.pack(std::string("event"));
+        pk.pack(std::string("TCP-SYN"));
+        this->emitter_->emit(buf);
+      }
 
-    if (this->sock_ && this->active_mode_) {
-      size_t hw_len;
-      void *hw_dst = p.value("ether.dst").ptr(&hw_len);
+      if (this->sock_) {
+        // activee mode
+        size_t hw_len;
+        void *hw_dst = p.value("ether.dst").ptr(&hw_len);
 
-      if (p.value("ether.type").uint32() != ETHERTYPE_IP ||
-          (0 != memcmp(hw_dst, this->sock_->hw_addr(), hw_len) &&
-           hw_len == ETHER_ADDR_LEN)) {
-        debug(DBG, "Invalid packet (ether-type=%d (should be %d), dst=%s, hw_len=%zd",
-              p.value("ether.type").uint32(), ETHERTYPE_IP,
-              p.value("ether.dst").repr().c_str(), hw_len);
-      } else {
+        if (p.value("ether.type").uint32() != ETHERTYPE_IP ||
+            (0 != memcmp(hw_dst, this->sock_->hw_addr(), hw_len) &&
+             hw_len == ETHER_ADDR_LEN)) {
+          debug(DBG, "Invalid packet (ether-type=%d (should be %d), dst=%s, hw_len=%zd",
+                p.value("ether.type").uint32(), ETHERTYPE_IP,
+                p.value("ether.dst").repr().c_str(), hw_len);
+        } 
+
         uint8_t buf[1024];
         size_t len = TcpHandler::build_tcp_synack_packet(p, buf, sizeof(buf));
         assert(len > 0);
         if (0 > this->sock_->write(buf, len)) {
-          std::cout << this->sock_->errmsg() << std::endl;
+          std::ostream *os = (this->out_) ? this->out_ : &(std::cerr);
+          (*os) << this->sock_->errmsg() << std::endl;
         }
       }
     }

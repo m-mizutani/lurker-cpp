@@ -31,11 +31,15 @@
 #include <string>
 #include <sstream>
 #include <zmq.h>
+#include <msgpack.hpp>
 
 namespace lurker {
-  class OutputPort {
+  class Emitter {
   private:
     std::string errmsg_;
+    int port_;
+    void *zmq_ctx_;
+    void *zmq_sock_;
 
   protected:
     void set_errmsg(const std::string &errmsg) {
@@ -43,34 +47,14 @@ namespace lurker {
     }
     
   public:
-    OutputPort() {}
-    virtual ~OutputPort() {}
-    virtual bool enque(const void *ptr, const size_t len) = 0;
+    Emitter();
+    virtual ~Emitter();
+    virtual bool emit(const msgpack::sbuffer &buf);
+    bool open_zmq_pub(int port);
+    
     const std::string &errmsg() const { return this->errmsg_; }
   };
 
-  class ZmqPush : public OutputPort {
-  private:    
-    std::string uri_;
-    void *zmq_ctx_;
-    void *zmq_sock_;
-
-  public:
-    ZmqPush(const std::string &uri);
-    ~ZmqPush();
-    bool enque(const void *ptr, const size_t len);
-  };
-
-  class ZmqPub : public OutputPort {
-  private:    
-    int port_;
-    void *zmq_ctx_;
-    void *zmq_sock_;
-  public:
-    ZmqPub(int port);
-    ~ZmqPub();
-    bool enque(const void *ptr, const size_t len);
-  };
 }
 
 

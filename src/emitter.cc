@@ -24,21 +24,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "./mq.h"
+#include <sstream>
 #include <string.h>
 #include <assert.h>
+#include "./emitter.h"
 
 namespace lurker {
 
-  ZmqPush::ZmqPush(const std::string &uri) {
-    this->zmq_ctx_  = zmq_ctx_new();
-    this->zmq_sock_ = zmq_socket(this->zmq_ctx_, ZMQ_PUSH);
-    int rc = zmq_connect(this->zmq_sock_, uri.c_str());
-    if (rc < 0) {
-      this->set_errmsg(zmq_strerror(errno));
-    }
+  Emitter::Emitter() : zmq_ctx_(NULL), zmq_sock_(NULL) {
   }
-  ZmqPush::~ZmqPush() {
+
+  Emitter::~Emitter() {
     if (this->zmq_sock_) {
       zmq_close(this->zmq_sock_);
     }
@@ -46,24 +42,32 @@ namespace lurker {
       zmq_ctx_destroy(this->zmq_ctx_);
     }
   }
-  bool ZmqPush::enque(const void *ptr, const size_t len) {
+
+  bool Emitter::open_zmq_pub(int port) {
+    this->port_ = port;
+    this->zmq_ctx_  = ::zmq_ctx_new();
+    this->zmq_sock_ = ::zmq_socket(this->zmq_ctx_, ZMQ_PUSH);
+    std::stringstream ss;
+    ss << "tcp://*:" << this->port_;
+    if (0 != ::zmq_bind(this->zmq_sock_, ss.str().c_str())) {
+      this->errmsg_ = ::zmq_strerror(errno);
+      return false;
+    }
+
     return true;
   }
 
+  bool Emitter::emit(const msgpack::sbuffer &buf) {
+    const void *ptr = buf.data();
+    const size_t len = buf.size();
 
-  ZmqPub::ZmqPub(int port) : port_(port) {
-    this->zmq_ctx_  = zmq_ctx_new();
-    this->zmq_sock_ = zmq_socket(this->zmq_ctx_, ZMQ_PUSH);
-  }
-  ZmqPub::~ZmqPub() {
-    if (this->zmq_sock_) {
-      zmq_close(this->zmq_sock_);
+    if (this->zmq_ctx_ && this->zmq_sock_) {
+      int rc = ::zmq_send(this->zmq_sock_, ptr, len, 0);
+      if (rc < 0) {
+        this->errmsg_ = ::zmq_strerror(errno);
+        return false;
+      }
     }
-    if (this->zmq_ctx_) {
-      zmq_ctx_destroy(this->zmq_ctx_);
-    }
-  }
-  bool ZmqPub::enque(const void *ptr, const size_t len) {
     return true;
   }
 

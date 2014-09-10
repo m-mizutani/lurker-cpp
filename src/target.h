@@ -32,15 +32,15 @@
 #include <map>
 
 namespace lurker {
-  class TargetRep {
+  class TargetSet {
   private:    
     // Target map by IP address (std::string) & port number (int)
     std::map<std::string, std::set<int>* > target_;
     std::string errmsg_;
 
   public:
-    TargetRep();
-    ~TargetRep();
+    TargetSet();
+    ~TargetSet();
     bool insert(const std::string &target);
     bool exists(const std::string &addr) const;
     bool exists(const std::string &addr, int port) const;

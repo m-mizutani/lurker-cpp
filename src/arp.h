@@ -30,7 +30,7 @@
 #include <ostream>
 #include <sstream>
 #include "./rawsock.h"
-#include "./mq.h"
+#include "./emitter.h"
 #include "./target.h"
 
 namespace lurker {
@@ -39,22 +39,16 @@ namespace lurker {
     swarm::Swarm *sw_;
     swarm::val_id op_;
     RawSock *sock_;
-    OutputPort *queue_;
+    Emitter *emitter_;
     std::ostream *os_;
-    bool active_mode_;
-    const TargetRep *target_;
+    const TargetSet *target_;
     
   public:
-    ArpHandler(swarm::Swarm *sw);
+    ArpHandler(swarm::Swarm *sw, TargetSet *target, Emitter *emitter);
     ~ArpHandler();
     void set_sock(RawSock *sock);
     void unset_sock();
-    void set_mq(OutputPort *queue);
-    void set_os(std::ostream *os);
     void recv(swarm::ev_id eid, const  swarm::Property &p);
-    void enable_active_mode();
-    void disable_active_mode();
-    void set_target(const TargetRep *tgt);
   };
 
 }

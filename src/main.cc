@@ -79,6 +79,10 @@ int main(int argc, char *argv[]) {
       lurker->enable_arp_spoof();
     }
 
+    if (opt.get("verbose")) {
+      lurker->set_out_stream(&(std::cout));
+    }
+
     lurker->run();
   } catch (const lurker::Exception &e) {
     std::cerr << e.what() << std::endl;

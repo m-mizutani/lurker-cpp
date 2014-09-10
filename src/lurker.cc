@@ -31,32 +31,35 @@
 #include "./debug.h"
 
 namespace lurker {
-  Lurker::Lurker(const std::string &tgt, bool dry_run) : 
+  Lurker::Lurker(const std::string &input, bool dry_run) : 
     sw_(NULL), 
     arph_(NULL),
     tcph_(NULL),
     sock_(NULL),
-    mq_(NULL),
+    out_(NULL),
     dry_run_(dry_run)
   {
-
+    // Create Swarm instance
     if (!this->dry_run_) {
-      this->sw_   = new swarm::SwarmDev(tgt);
-      this->sock_ = new RawSock(tgt);
+      this->sw_   = new swarm::SwarmDev(input);
+      this->sock_ = new RawSock(input);
     } else {
-      this->sw_ = new swarm::SwarmFile(tgt);
+      this->sw_ = new swarm::SwarmFile(input);
     }
 
-    this->tcph_ = new TcpHandler(this->sw_);
-    this->sw_->set_handler("tcp.syn", this->tcph_);
+    this->tcph_ = new TcpHandler(this->sw_, &this->target_, &this->emitter_);
 
     if (!this->dry_run_) {
-      this->tcph_->enable_active_mode();
       this->tcph_->set_sock(this->sock_);
     }
   }
   Lurker::~Lurker() {
+    delete this->tcph_;
+    delete this->arph_;
+    delete this->sock_;
+    delete this->sw_;
   }
+
   void Lurker::set_filter(const std::string &filter) {
     /*
     if (!this->sw_->set_filter(filter)) {
@@ -67,14 +70,24 @@ namespace lurker {
     */
   }
 
+  void Lurker::set_out_stream(std::ostream *os) {
+    this->out_ = os;
+    if (this->tcph_) {
+      this->tcph_->set_out_stream(this->out_);
+    }
+  }
+
+  void Lurker::add_target(const std::string &target) throw(Exception) {
+    // ToDo:
+  }
+
   void Lurker::enable_arp_spoof() {
-    this->arph_ = new ArpHandler(this->sw_);
+    this->arph_ = new ArpHandler(this->sw_, &this->target_, &this->emitter_);
     // this->arph_->set_mq(mq);
     // arph->set_os(out);
     this->sw_->set_handler("arp.request", this->arph_);
 
     if (!this->dry_run_) {
-      this->arph_->enable_active_mode();
       this->arph_->set_sock(this->sock_);
     }
   }

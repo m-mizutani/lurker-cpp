@@ -35,7 +35,7 @@
 #include "./rawsock.h"
 #include "./arp.h"
 #include "./tcp.h"
-#include "./mq.h"
+#include "./emitter.h"
 
 
 namespace lurker {
@@ -54,13 +54,17 @@ namespace lurker {
     ArpHandler *arph_;
     TcpHandler *tcph_;
     RawSock *sock_;
-    OutputPort *mq_;
+    std::ostream *out_;
+    Emitter emitter_;
     bool dry_run_;
+    TargetSet target_;
 
   public:
     Lurker(const std::string &tgt, bool dry_run=false);
     ~Lurker();
     void set_filter(const std::string &filter);
+    void set_out_stream(std::ostream *os);
+    void add_target(const std::string &target) throw(Exception);
     void enable_arp_spoof();
     void run() throw(Exception);
   };
