@@ -158,7 +158,7 @@ namespace lurker {
 
   void TcpHandler::recv(swarm::ev_id eid, const  swarm::Property &p) {
 
-    if (this->target_->exists(p.dst_addr(), p.dst_port())) {
+    if (this->target_->has(p.dst_addr(), p.dst_port())) {
       if (this->out_) {
         std::ostream &os = *(this->out_); // just for readability
         os << "Perceived TCP-SYN "

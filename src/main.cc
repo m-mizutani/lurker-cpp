@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
     .help("Server name and port number to push result as ZMQ");
   psr.add_option("-o").dest("output").metavar("STRING")
     .help("Output file name. '-' means stdout");
-  psr.add_option("-V").dest("verbose").metavar("BOOL").action("store_true")
+  psr.add_option("-v").dest("verbose").metavar("BOOL").action("store_true")
     .help("Verbose mode");
   
   optparse::Values& opt = psr.parse_args(argc, argv);
@@ -70,6 +70,11 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
+  if (args.size() == 0) {
+    std::cerr << "No target is configured" << std::endl;
+    return EXIT_FAILURE;
+  }
+
   try {
     if (opt.is_set("filter")) {
       lurker->set_filter(opt["filter"]);
@@ -81,6 +86,10 @@ int main(int argc, char *argv[]) {
 
     if (opt.get("verbose")) {
       lurker->set_out_stream(&(std::cout));
+    }
+
+    for (size_t i = 0; i < args.size(); i++) {
+      lurker->add_target(args[i]);
     }
 
     lurker->run();

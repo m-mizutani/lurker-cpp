@@ -48,6 +48,7 @@ namespace lurker {
     ~ArpHandler();
     void set_sock(RawSock *sock);
     void unset_sock();
+    void set_out_stream(std::ostream *os);
     void recv(swarm::ev_id eid, const  swarm::Property &p);
   };
 

@@ -75,10 +75,15 @@ namespace lurker {
     if (this->tcph_) {
       this->tcph_->set_out_stream(this->out_);
     }
+    if (this->arph_) {
+      this->arph_->set_out_stream(this->out_);
+    }
   }
 
   void Lurker::add_target(const std::string &target) throw(Exception) {
-    // ToDo:
+    if (!this->target_.insert(target)) {
+      throw Exception(this->target_.errmsg());
+    }    
   }
 
   void Lurker::enable_arp_spoof() {

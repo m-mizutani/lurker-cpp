@@ -47,43 +47,55 @@ namespace lurker {
       return false;
     }
 
-    // Split string to address and port
+    // Split string to address and port.
     std::string addr = target.substr(0, p);
     std::string port = target.substr(p + 1);
 
-    // Convert port number to integer
+    // Convert port number to integer.
     char *e;
-    int port_num = strtol(port.c_str(), &e, 0);
-    if (*e != '\0') {
-      // port includes not digit chractor
-      std::stringstream ss;
-      ss << "Port number is not digit: " << port;
-      this->errmsg_ = ss.str();
-      return false;
+    bool any_port = true;;
+    int port_num = 0;
+
+    if (port != "*") {
+      port_num = strtol(port.c_str(), &e, 0);
+      any_port = false;
+
+      if (*e != '\0') {
+        // port includes not digit chractor
+        std::stringstream ss;
+        ss << "Port number is not digit: " << port;
+        this->errmsg_ = ss.str();
+        return false;
+      }
     }
 
-    // insert target address and port number
+    // Insert target address and port number.
     auto it = this->target_.find(addr);
-    if (it != this->target_.end()) {
+    if (it != this->target_.end() && it->second != NULL) {
+      // Skip if set<int> is NULL. It means allowing any port.
       (it->second)->insert(port_num);
     } else {
-      auto sit = new std::set<int>();
-      this->target_.insert(std::make_pair(addr, sit));
-      sit->insert(port_num);
+      std::set<int> *port_set = NULL;
+      if (!any_port) {
+        port_set = new std::set<int>();
+        port_set->insert(port_num);
+      }
+
+      this->target_.insert(std::make_pair(addr, port_set));
     }
 
     return true;
   }
 
-  bool TargetSet::exists(const std::string &addr) const {
+  bool TargetSet::has(const std::string &addr) const {
     auto it = this->target_.find(addr);
     return (it != this->target_.end());
   }
 
-  bool TargetSet::exists(const std::string &addr, int port) const {
+  bool TargetSet::has(const std::string &addr, int port) const {
     auto it = this->target_.find(addr);
     if (it != this->target_.end()) {
-      if ((it->second)->find(port) != (it->second)->end()) {
+      if (it->second == NULL || ((it->second)->find(port) != (it->second)->end())) {
         return true;
       }
     }

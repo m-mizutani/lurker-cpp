@@ -42,8 +42,8 @@ namespace lurker {
     TargetSet();
     ~TargetSet();
     bool insert(const std::string &target);
-    bool exists(const std::string &addr) const;
-    bool exists(const std::string &addr, int port) const;
+    bool has(const std::string &addr) const;
+    bool has(const std::string &addr, int port) const;
     const std::string &errmsg() const;
   };
 }

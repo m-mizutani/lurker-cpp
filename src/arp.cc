@@ -54,10 +54,14 @@ namespace lurker {
     this->sock_ = NULL;
   }
 
+  void ArpHandler::set_out_stream(std::ostream *os) {
+    this->os_ = os;
+  }
+
 
   void ArpHandler::recv(swarm::ev_id eid, const  swarm::Property &p) {
 
-    if (this->target_->exists(p.value("arp.dst_pr").repr())) {
+    if (this->target_->has(p.value("arp.dst_pr").repr())) {
 
       bool reply = false;
 
