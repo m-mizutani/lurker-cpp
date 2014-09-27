@@ -45,7 +45,7 @@ namespace lurker {
   public:
     Exception(const std::string &errmsg) : errmsg_(errmsg) {}
     ~Exception() {}
-    virtual const char* what() const _NOEXCEPT { return this->errmsg_.c_str(); }
+    virtual const char* what() const throw() { return this->errmsg_.c_str(); }
   };
 
   class Lurker {
