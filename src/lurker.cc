@@ -24,7 +24,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <swarm.h>
 #include <fstream>
 
 #include "./lurker.h"

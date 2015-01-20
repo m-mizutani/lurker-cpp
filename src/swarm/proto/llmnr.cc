@@ -24,48 +24,24 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_TCP_H__
-#define SRC_TCP_H__
 
-#include <sstream>
-#include <ostream>
-#include "./swarm/swarm.h"
-#include "./rawsock.h"
-#include "./emitter.h"
-#include "./target.h"
+#include "./decode_name_service.h"
 
-namespace lurker {
-  class TcpHandler : public swarm::Handler {
-  private:
-    swarm::Swarm *sw_;
-    swarm::hdlr_id syn_hdlr_id_;
-    swarm::hdlr_id data_hdlr_id_;
-    swarm::ev_id syn_ev_;
-    swarm::ev_id data_ev_;
-
-    RawSock *sock_;
-    static const bool DBG = false;
-    const TargetSet *target_;
-    Emitter *emitter_;
-    std::ostream *out_;
-
-    static size_t build_tcp_synack_packet(const swarm::Property &p,
-                                          void *buffer, size_t len);
-
+namespace swarm {
+  // Link-local Multicast Name Resolution Protocol
+  class LlmnrDecoder : public NameServiceDecoder {
   public:
-    TcpHandler(swarm::Swarm *sw, TargetSet *target, Emitter *emitter);
-    ~TcpHandler();
-    void set_sock(RawSock *sock);
-    void unset_sock();
-    void set_out_stream(std::ostream *os);
-    void unset_out_stream();
-    void recv(swarm::ev_id eid, const  swarm::Property &p);
-    void handle_synpkt(const swarm::Property &p);
-    void handle_data(const swarm::Property &p);
-    
+    explicit LlmnrDecoder (NetDec * nd) : NameServiceDecoder (nd, "llmnr") {
+    }
+
+    // Factory function for LlmnrDecoder
+    static Decoder * New (NetDec * nd) { return new LlmnrDecoder (nd); }
+
+    // Main decoding function.
+    bool decode (Property *p) {
+      return this->ns_decode (p);
+    }
   };
 
-}
-
-
-#endif  // SRC_TCP_H__
+  INIT_DECODER (llmnr, LlmnrDecoder::New);
+}  // namespace swarm

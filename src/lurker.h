@@ -29,7 +29,8 @@
 
 #include <sstream>
 #include <ostream>
-#include <swarm.h>
+
+#include "./swarm/swarm.h"
 #include "./debug.h"
 #include "./optparse.h"
 #include "./rawsock.h"

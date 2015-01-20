@@ -24,48 +24,65 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_TCP_H__
-#define SRC_TCP_H__
+#ifndef SRC_SWARM_H__
+#define SRC_SWARM_H__
 
-#include <sstream>
-#include <ostream>
-#include "./swarm/swarm.h"
-#include "./rawsock.h"
-#include "./emitter.h"
-#include "./target.h"
+#include <assert.h>
+#include <sys/types.h>
+#include <pcap.h>
+#include <string>
+#include <map>
+#include <vector>
+#include <deque>
 
-namespace lurker {
-  class TcpHandler : public swarm::Handler {
-  private:
-    swarm::Swarm *sw_;
-    swarm::hdlr_id syn_hdlr_id_;
-    swarm::hdlr_id data_hdlr_id_;
-    swarm::ev_id syn_ev_;
-    swarm::ev_id data_ev_;
+#include "./swarm/common.h"
+#include "./swarm/property.h"
+#include "./swarm/netdec.h"
+#include "./swarm/netcap.h"
+#include "./swarm/decode.h"
 
-    RawSock *sock_;
-    static const bool DBG = false;
-    const TargetSet *target_;
-    Emitter *emitter_;
-    std::ostream *out_;
+namespace swarm {
+  class NetDec;
+  class NetCap;
+  class Handler;
+  class Task;
 
-    static size_t build_tcp_synack_packet(const swarm::Property &p,
-                                          void *buffer, size_t len);
-
-  public:
-    TcpHandler(swarm::Swarm *sw, TargetSet *target, Emitter *emitter);
-    ~TcpHandler();
-    void set_sock(RawSock *sock);
-    void unset_sock();
-    void set_out_stream(std::ostream *os);
-    void unset_out_stream();
-    void recv(swarm::ev_id eid, const  swarm::Property &p);
-    void handle_synpkt(const swarm::Property &p);
-    void handle_data(const swarm::Property &p);
+  // ----------------------------------------------------------
+  // Swarm
+  class Swarm {
+  protected:
+    NetDec *netdec_;
+    NetCap *netcap_;
     
+  public:
+    Swarm();
+    ~Swarm();
+    hdlr_id set_handler(const std::string &ev_name, Handler *hdlr);
+    hdlr_id set_handler(const ev_id eid, Handler *hdlr);
+    bool unset_handler(hdlr_id h_id);
+
+    task_id set_periodic_task(Task *task, float interval);
+    bool unset_task(task_id t_id);
+
+    ev_id lookup_event_id(const std::string &ev_name) const;
+    val_id lookup_value_id(const std::string &val_name) const;
+
+    bool ready() const;
+    void start();
+    const std::string& errmsg() const;
+  };
+
+  class SwarmDev : public Swarm {
+  public:
+    SwarmDev(const std::string &dev_name);
+    ~SwarmDev();
+  };
+  class SwarmFile : public Swarm {
+  public:
+    SwarmFile(const std::string &file_path);
+    ~SwarmFile();
   };
 
 }
 
-
-#endif  // SRC_TCP_H__
+#endif  // SRC_SWARM_H__

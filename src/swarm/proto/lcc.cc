@@ -24,48 +24,61 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_TCP_H__
-#define SRC_TCP_H__
 
-#include <sstream>
-#include <ostream>
-#include "./swarm/swarm.h"
-#include "./rawsock.h"
-#include "./emitter.h"
-#include "./target.h"
+#include "../swarm/decode.h"
 
-namespace lurker {
-  class TcpHandler : public swarm::Handler {
+
+namespace swarm {
+
+  class LccDecoder : public Decoder {
   private:
-    swarm::Swarm *sw_;
-    swarm::hdlr_id syn_hdlr_id_;
-    swarm::hdlr_id data_hdlr_id_;
-    swarm::ev_id syn_ev_;
-    swarm::ev_id data_ev_;
+    struct lcc_header {
+      u_int16_t pkt_type_;
+      u_int16_t addr_type_;
+      u_int16_t addr_len_;
+      u_int8_t addr_[8];
+      u_int16_t proto_;
+    } __attribute__((packed));
 
-    RawSock *sock_;
-    static const bool DBG = false;
-    const TargetSet *target_;
-    Emitter *emitter_;
-    std::ostream *out_;
-
-    static size_t build_tcp_synack_packet(const swarm::Property &p,
-                                          void *buffer, size_t len);
+    ev_id EV_LCC_PKT_;
+    val_id P_PROTO_;
+    dec_id D_IPV4_;
 
   public:
-    TcpHandler(swarm::Swarm *sw, TargetSet *target, Emitter *emitter);
-    ~TcpHandler();
-    void set_sock(RawSock *sock);
-    void unset_sock();
-    void set_out_stream(std::ostream *os);
-    void unset_out_stream();
-    void recv(swarm::ev_id eid, const  swarm::Property &p);
-    void handle_synpkt(const swarm::Property &p);
-    void handle_data(const swarm::Property &p);
-    
+    explicit LccDecoder (NetDec * nd) : Decoder (nd) {
+      this->EV_LCC_PKT_ = nd->assign_event ("lcc.packet",
+                                            "Linux Cooked Capture Packet");
+      this->P_PROTO_ = nd->assign_value ("lcc.proto", "Linux Cooked Capture");
+    }
+    void setup (NetDec * nd) {
+      this->D_IPV4_ = nd->lookup_dec_id ("ipv4");
+    };
+
+    // Factory function for LccDecoder
+    static Decoder * New (NetDec * nd) { return new LccDecoder (nd); }
+
+    // Main decoding function.
+    bool decode (Property *p) {
+      auto lcc_hdr = reinterpret_cast <struct lcc_header *>
+        (p->payload (sizeof (struct lcc_header)));
+
+      if (lcc_hdr == nullptr) {
+        return false;
+      }
+
+      // set data to property
+      p->set (this->P_PROTO_, &(lcc_hdr->proto_), sizeof (lcc_hdr->proto_));
+
+      // push event
+      p->push_event (this->EV_LCC_PKT_);
+
+      // call next decoder
+      if (htons(lcc_hdr->proto_) == 0x800) {
+        this->emit (this->D_IPV4_, p);
+      }
+      return true;
+    }
   };
 
-}
-
-
-#endif  // SRC_TCP_H__
+  INIT_DECODER (lcc, LccDecoder::New);
+}  // namespace swarm

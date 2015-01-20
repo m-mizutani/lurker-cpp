@@ -24,10 +24,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <swarm.h>
 #include <string.h>
 #include <msgpack.hpp>
 
+#include "./swarm/swarm.h"
 #include "./debug.h"
 #include "./optparse.h"
 #include "./arp.h"

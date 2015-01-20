@@ -24,7 +24,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <swarm.h>
 #include <string.h>
 #include <iostream>
 #include <msgpack.hpp>
@@ -57,11 +56,20 @@ namespace lurker {
   }
 
   TcpHandler::TcpHandler(swarm::Swarm *sw, TargetSet *target, Emitter *emitter) :
-    sw_(sw), sock_(NULL), target_(target), emitter_(emitter) {
-    this->hdlr_id_ = this->sw_->set_handler("tcp.syn", this); 
+    sw_(sw), sock_(NULL), target_(target), emitter_(emitter), out_(NULL) {
+    this->syn_ev_  = this->sw_->lookup_event_id("tcp.syn"); 
+    this->data_ev_ = this->sw_->lookup_event_id("tcp_ssn.data"); 
+    this->syn_hdlr_id_  = this->sw_->set_handler(this->syn_ev_, this); 
+    this->data_hdlr_id_ = this->sw_->set_handler(this->data_ev_, this); 
+
+    assert(this->syn_ev_ != swarm::EV_NULL);
+    assert(this->data_ev_ != swarm::EV_NULL);
+    assert(this->syn_hdlr_id_ != swarm::HDLR_NULL);
+    assert(this->data_hdlr_id_ != swarm::HDLR_NULL);
   }
   TcpHandler::~TcpHandler() {
-    this->sw_->unset_handler(this->hdlr_id_);
+    this->sw_->unset_handler(this->syn_hdlr_id_);
+    this->sw_->unset_handler(this->data_hdlr_id_);
   }
 
   void TcpHandler::set_sock(RawSock *sock) {
@@ -156,8 +164,7 @@ namespace lurker {
     return rc;
   }
 
-  void TcpHandler::recv(swarm::ev_id eid, const  swarm::Property &p) {
-
+  void TcpHandler::handle_synpkt(const swarm::Property &p) {
     if (this->target_->has(p.dst_addr(), p.dst_port())) {
       if (this->out_) {
         std::ostream &os = *(this->out_); // just for readability
@@ -206,6 +213,24 @@ namespace lurker {
           (*os) << this->sock_->errmsg() << std::endl;
         }
       }
+    }
+  }
+
+  void TcpHandler::handle_data(const swarm::Property &p) {
+    if (p.value("tcp_ssn.segment").is_null()) {
+      debug(1, "data is null");
+    } else {
+      std::cout << "DATA: [" << p.hash_value() << "] " << 
+        "(" << p.src_addr() << " > " << p.dst_port() << ") " << 
+        p.value("tcp_ssn.segment").prt() << std::endl;
+    }
+  } 
+
+  void TcpHandler::recv(swarm::ev_id eid, const swarm::Property &p) {
+    if (eid == this->syn_ev_) {
+      this->handle_synpkt(p);
+    } else if (eid == this->data_ev_) {
+      this->handle_data(p);
     }
   }
 }

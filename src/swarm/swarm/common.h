@@ -24,48 +24,43 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_TCP_H__
-#define SRC_TCP_H__
+#ifndef SRC_COMMON_H__
+#define SRC_COMMON_H__
 
-#include <sstream>
-#include <ostream>
-#include "./swarm/swarm.h"
-#include "./rawsock.h"
-#include "./emitter.h"
-#include "./target.h"
+#include <sys/types.h>
 
-namespace lurker {
-  class TcpHandler : public swarm::Handler {
-  private:
-    swarm::Swarm *sw_;
-    swarm::hdlr_id syn_hdlr_id_;
-    swarm::hdlr_id data_hdlr_id_;
-    swarm::ev_id syn_ev_;
-    swarm::ev_id data_ev_;
+namespace swarm {
+  typedef u_int8_t  byte_t;  // 1 byte data type
+  typedef int64_t    ev_id;  // Event ID
+  typedef int64_t   val_id;  // Value ID
+  typedef int64_t  hdlr_id;  // Handler Entry ID
+  typedef int64_t  task_id;  // Task ID
+  typedef int       dec_id;  // Decoder ID
 
-    RawSock *sock_;
-    static const bool DBG = false;
-    const TargetSet *target_;
-    Emitter *emitter_;
-    std::ostream *out_;
+  const ev_id    EV_NULL = -1;
+  const ev_id    EV_BASE =  0;
+  const hdlr_id  HDLR_BASE =  0;
+  const hdlr_id  HDLR_NULL = -1;
+  const val_id   VALUE_NULL = -1;
+  const val_id   VALUE_BASE =  0;
+  const dec_id   DEC_NULL = -1;
+  const dec_id   DEC_BASE =  0;
+  const task_id  TASK_NULL = 0;
 
-    static size_t build_tcp_synack_packet(const swarm::Property &p,
-                                          void *buffer, size_t len);
+  class Property;
+  class ValueSet;
+  class ValueEntry;
+  class ValueFactory;
+  class Value;
+  class Decoder;
+  class Task;
 
-  public:
-    TcpHandler(swarm::Swarm *sw, TargetSet *target, Emitter *emitter);
-    ~TcpHandler();
-    void set_sock(RawSock *sock);
-    void unset_sock();
-    void set_out_stream(std::ostream *os);
-    void unset_out_stream();
-    void recv(swarm::ev_id eid, const  swarm::Property &p);
-    void handle_synpkt(const swarm::Property &p);
-    void handle_data(const swarm::Property &p);
-    
+  enum FlowDir {
+    DIR_NIL = 0, // Not defined
+    DIR_L2R, // Left to Right
+    DIR_R2L, // Right to Left
   };
 
-}
+}  // namespace swarm
 
-
-#endif  // SRC_TCP_H__
+#endif  // SRC_COMMON_H__
