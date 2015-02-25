@@ -196,6 +196,7 @@ namespace lurker {
         if (0 > this->sock_->write(buf, len)) {
           fluent::Message *msg = this->logger_->retain_message("lurker.error");
           msg->set("message", this->sock_->errmsg());
+          msg->set("event", "tcp-syn-reply");
           this->logger_->emit(msg);
           
           // TODO: design how to handle error message appropriately.

@@ -29,6 +29,7 @@
 
 #include <ostream>
 #include <sstream>
+#include <fluent.hpp>
 #include "./rawsock.h"
 #include "./emitter.h"
 #include "./target.h"
@@ -39,16 +40,15 @@ namespace lurker {
     swarm::Swarm *sw_;
     swarm::val_id op_;
     RawSock *sock_;
-    Emitter *emitter_;
-    std::ostream *os_;
     const TargetSet *target_;
-    
+    fluent::Logger *logger_;
+
   public:
-    ArpHandler(swarm::Swarm *sw, TargetSet *target, Emitter *emitter);
+    ArpHandler(swarm::Swarm *sw, TargetSet *target);
     ~ArpHandler();
     void set_sock(RawSock *sock);
     void unset_sock();
-    void set_out_stream(std::ostream *os);
+    void set_logger(fluent::Logger *logger);
     void recv(swarm::ev_id eid, const  swarm::Property &p);
   };
 

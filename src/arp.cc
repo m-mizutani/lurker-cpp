@@ -35,11 +35,10 @@
 
 namespace lurker {
 
-  ArpHandler::ArpHandler(swarm::Swarm *sw, TargetSet *target, Emitter *emitter) : 
-    sw_(sw), sock_(NULL), emitter_(emitter), os_(NULL), target_(target) {
+  ArpHandler::ArpHandler(swarm::Swarm *sw, TargetSet *target) : 
+    sw_(sw), sock_(NULL), target_(target), logger_(nullptr) {
     assert(this->sw_);
     assert(this->target_);
-    assert(this->emitter_);
     this->op_ = this->sw_->lookup_value_id("arp.op");
   }
   ArpHandler::~ArpHandler() {
@@ -54,10 +53,9 @@ namespace lurker {
     this->sock_ = NULL;
   }
 
-  void ArpHandler::set_out_stream(std::ostream *os) {
-    this->os_ = os;
+  void ArpHandler::set_logger(fluent::Logger *logger) {
+    this->logger_ = logger;
   }
-
 
   void ArpHandler::recv(swarm::ev_id eid, const  swarm::Property &p) {
 
@@ -89,42 +87,27 @@ namespace lurker {
         memcpy(arp_hdr->dst_pr_addr_, p.value("arp.src_pr").ptr(), IPV4_ADDR_LEN);
 
         memcpy(arp_hdr->src_hw_addr_, this->sock_->hw_addr(), ETHER_ADDR_LEN);
-        this->sock_->write(buf, buf_len);
+        if (this->sock_->write(buf, buf_len) < 0) {
+          fluent::Message *msg = this->logger_->retain_message("lurker.error");
+          msg->set("message", this->sock_->errmsg());
+          msg->set("event", "arp-reply");
+          this->logger_->emit(msg);
+        } else {
+          reply = true;
+        }
+          
         free(buf);
-        reply = true;
       }
 
-      if (this->emitter_) {
-        msgpack::sbuffer buf;
-        msgpack::packer<msgpack::sbuffer> pk(&buf);
-        pk.pack_map(7);
-
-        pk.pack(std::string("ts"));
-        pk.pack(p.ts());
-
-        pk.pack(std::string("src_addr"));
-        pk.pack(p.value("arp.src_pr").repr());
-        pk.pack(std::string("dst_addr"));
-        pk.pack(p.value("arp.dst_pr").repr());
-
-        pk.pack(std::string("src_hw"));
-        pk.pack(p.value("arp.src_hw").repr());
-        pk.pack(std::string("dst_hw"));
-        pk.pack(p.value("arp.dst_hw").repr());
-
-        pk.pack(std::string("event"));
-        pk.pack(std::string("ARP-REQ"));
-
-        pk.pack(std::string("replied"));
-        pk.pack(reply);
-
-        this->emitter_->emit(buf);
-      }
-
-      if (this->os_) {
-        *(this->os_) << "ARP recv: who-has " << p.value("arp.dst_pr").repr() << " from "
-                     << p.value("arp.src_pr").repr() << " [" << p.value("arp.src_hw").repr() 
-                     << "]" << std::endl;
+      if (this->logger_) {
+        fluent::Message *msg = this->logger_->retain_message("lurker.arp-req");
+        msg->set_ts(p.tv_sec());
+        msg->set("src_addr", p.value("arp.src_pr").repr());
+        msg->set("dst_addr", p.value("arp.dst_pr").repr());
+        msg->set("src_hw", p.value("arp.src_hw").repr());
+        msg->set("dst_hw", p.value("arp.dst_hw").repr());
+        msg->set("replied", reply);
+        this->logger_->emit(msg);
       }
     } 
 

@@ -83,7 +83,8 @@ namespace lurker {
   }
 
   void Lurker::enable_arp_spoof() {
-    this->arph_ = new ArpHandler(this->sw_, &this->target_, &this->emitter_);
+    this->arph_ = new ArpHandler(this->sw_, &this->target_);
+    this->arph_->set_logger(this->logger_);
     // this->arph_->set_mq(mq);
     // arph->set_os(out);
     this->sw_->set_handler("arp.request", this->arph_);
