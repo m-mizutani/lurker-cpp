@@ -71,11 +71,11 @@ namespace lurker {
 
     // Insert target address and port number.
     auto it = this->target_.find(addr);
-    if (it != this->target_.end() && it->second != NULL) {
-      // Skip if set<int> is NULL. It means allowing any port.
+    if (it != this->target_.end() && it->second != nullptr) {
+      // Skip if set<int> is nullptr. It means allowing any port.
       (it->second)->insert(port_num);
     } else {
-      std::set<int> *port_set = NULL;
+      std::set<int> *port_set = nullptr;
       if (!any_port) {
         port_set = new std::set<int>();
         port_set->insert(port_num);
@@ -95,7 +95,7 @@ namespace lurker {
   bool TargetSet::has(const std::string &addr, int port) const {
     auto it = this->target_.find(addr);
     if (it != this->target_.end()) {
-      if (it->second == NULL || ((it->second)->find(port) != (it->second)->end())) {
+      if (it->second == nullptr || ((it->second)->find(port) != (it->second)->end())) {
         return true;
       }
     }

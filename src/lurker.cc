@@ -32,10 +32,10 @@
 
 namespace lurker {
   Lurker::Lurker(const std::string &input, bool dry_run) : 
-    sw_(NULL), 
-    arph_(NULL),
-    tcph_(NULL),
-    sock_(NULL),
+    sw_(nullptr), 
+    arph_(nullptr),
+    tcph_(nullptr),
+    sock_(nullptr),
     dry_run_(dry_run),
     logger_(nullptr)
   {

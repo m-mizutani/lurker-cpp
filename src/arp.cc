@@ -36,7 +36,7 @@
 namespace lurker {
 
   ArpHandler::ArpHandler(swarm::Swarm *sw, TargetSet *target) : 
-    sw_(sw), sock_(NULL), target_(target), logger_(nullptr) {
+    sw_(sw), sock_(nullptr), target_(target), logger_(nullptr) {
     assert(this->sw_);
     assert(this->target_);
     this->op_ = this->sw_->lookup_value_id("arp.op");
@@ -50,7 +50,7 @@ namespace lurker {
   }
 
   void ArpHandler::unset_sock() {
-    this->sock_ = NULL;
+    this->sock_ = nullptr;
   }
 
   void ArpHandler::set_logger(fluent::Logger *logger) {

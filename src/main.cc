@@ -58,14 +58,14 @@ int main(int argc, char *argv[]) {
   
 
   // Setup Lurker
-  lurker::Lurker *lurker = NULL;
+  lurker::Lurker *lurker = nullptr;
   if (opt.is_set("interface")) {
     lurker = new lurker::Lurker(opt["interface"]);
   } else if (opt.is_set("pcap_file")) {
     lurker = new lurker::Lurker(opt["pcap_file"], true);  // enable dry run mode
   }
 
-  if (lurker == NULL) {
+  if (lurker == nullptr) {
     std::cerr << "Should set interface with '-i' option" << std::endl;
     return EXIT_FAILURE;
   }

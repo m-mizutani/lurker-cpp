@@ -31,7 +31,7 @@
 
 namespace lurker {
 
-  Emitter::Emitter() : zmq_ctx_(NULL), zmq_sock_(NULL) {
+  Emitter::Emitter() : zmq_ctx_(nullptr), zmq_sock_(nullptr) {
   }
 
   Emitter::~Emitter() {

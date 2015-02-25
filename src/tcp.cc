@@ -56,7 +56,7 @@ namespace lurker {
   }
 
   TcpHandler::TcpHandler(swarm::Swarm *sw, TargetSet *target) :
-    sw_(sw), sock_(NULL), target_(target), logger_(nullptr) {
+    sw_(sw), sock_(nullptr), target_(target), logger_(nullptr) {
     this->syn_ev_  = this->sw_->lookup_event_id("tcp.syn"); 
     this->data_ev_ = this->sw_->lookup_event_id("tcp_ssn.data"); 
     this->syn_hdlr_id_  = this->sw_->set_handler(this->syn_ev_, this); 
@@ -76,7 +76,7 @@ namespace lurker {
     this->sock_ = sock;
   }
   void TcpHandler::unset_sock() {
-    this->sock_ = NULL;
+    this->sock_ = nullptr;
   }
 
   void TcpHandler::set_logger(fluent::Logger *logger) {

@@ -147,7 +147,7 @@ namespace lurker {
     }
 
     // retrieve MAC address from dev_name
-    for (ifa = ifa_list; ifa != NULL; ifa = ifa->ifa_next) {
+    for (ifa = ifa_list; ifa != nullptr; ifa = ifa->ifa_next) {
       struct sockaddr_dl *dl = reinterpret_cast<struct sockaddr_dl*> (ifa->ifa_addr);
       if (dl->sdl_family == AF_LINK && dl->sdl_type == IFT_ETHER) {
         std::string if_name (dl->sdl_data, dl->sdl_nlen);
