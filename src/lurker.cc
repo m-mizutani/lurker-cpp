@@ -26,6 +26,7 @@
 
 #include <fstream>
 
+#include <fluent.hpp>
 #include "./lurker.h"
 #include "./debug.h"
 
@@ -36,8 +37,12 @@ namespace lurker {
     tcph_(NULL),
     sock_(NULL),
     out_(NULL),
-    dry_run_(dry_run)
+    dry_run_(dry_run),
+    logger_(nullptr)
   {
+    // Create Logger
+    this->logger_ = new fluent::Logger();
+      
     // Create Swarm instance
     if (!this->dry_run_) {
       this->sw_   = new swarm::SwarmDev(input);
@@ -57,6 +62,7 @@ namespace lurker {
     delete this->arph_;
     delete this->sock_;
     delete this->sw_;
+    delete this->logger_;
   }
 
   void Lurker::set_filter(const std::string &filter) {
@@ -104,24 +110,3 @@ namespace lurker {
     this->sw_->start();
   }
 }
-
-  /*
-    std::ostream *out = NULL;
-    if (opt.is_set("output")) {
-      if (opt["output"] == "-") {
-        std::cerr << "NOTE: output to stdout" << std::endl;
-        out = &std::cout;
-      } else {
-        std::ofstream *ofs = new std::ofstream();
-        ofs->open(opt["output"].c_str(), std::ofstream::out | std::ofstream::app);
-        if (!ofs->is_open()) {
-          std::cerr << "File open error: " << opt["output"] << std::endl;
-          delete ofs;
-          return false;
-        }
-        out = ofs;
-      }
-    }
-  */
-
-

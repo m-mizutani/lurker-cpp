@@ -17,5 +17,5 @@ FILE(GLOB BASESRCS "src/*.cc"
 )
 
 ADD_EXECUTABLE(lurker ${BASESRCS})
-TARGET_LINK_LIBRARIES(lurker pcap ev zmq msgpack)
+TARGET_LINK_LIBRARIES(lurker pcap ev zmq msgpack fluent)
 

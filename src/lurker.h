@@ -38,6 +38,9 @@
 #include "./tcp.h"
 #include "./emitter.h"
 
+namespace fluent {
+  class Logger;
+}
 
 namespace lurker {
   class Exception : public std::exception {
@@ -59,7 +62,8 @@ namespace lurker {
     Emitter emitter_;
     bool dry_run_;
     TargetSet target_;
-
+    fluent::Logger *logger_;
+    
   public:
     Lurker(const std::string &tgt, bool dry_run=false);
     ~Lurker();
