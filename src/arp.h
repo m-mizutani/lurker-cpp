@@ -31,7 +31,6 @@
 #include <sstream>
 #include <fluent.hpp>
 #include "./rawsock.h"
-#include "./emitter.h"
 #include "./target.h"
 
 namespace lurker {

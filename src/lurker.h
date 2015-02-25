@@ -32,11 +32,9 @@
 
 #include "./swarm/swarm.h"
 #include "./debug.h"
-#include "./optparse.h"
 #include "./rawsock.h"
 #include "./arp.h"
 #include "./tcp.h"
-#include "./emitter.h"
 
 namespace fluent {
   class Logger;
@@ -58,7 +56,6 @@ namespace lurker {
     ArpHandler *arph_;
     TcpHandler *tcph_;
     RawSock *sock_;
-    Emitter emitter_;
     bool dry_run_;
     TargetSet target_;
     fluent::Logger *logger_;

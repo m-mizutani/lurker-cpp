@@ -29,7 +29,6 @@
 
 #include "./swarm/swarm.h"
 #include "./debug.h"
-#include "./optparse.h"
 #include "./arp.h"
 #include "./pkt.h"
 

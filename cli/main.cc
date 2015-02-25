@@ -26,7 +26,8 @@
 
 
 #include <fstream>
-#include "lurker.h"
+#include "../src/lurker.h"
+#include "./optparse.h"
 
 int main(int argc, char *argv[]) {
   // Configure options

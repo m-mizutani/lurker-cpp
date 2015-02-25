@@ -32,7 +32,6 @@
 #include <fluent.hpp>
 #include "./swarm/swarm.h"
 #include "./rawsock.h"
-#include "./emitter.h"
 #include "./target.h"
 
 namespace lurker {
