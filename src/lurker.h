@@ -58,7 +58,6 @@ namespace lurker {
     ArpHandler *arph_;
     TcpHandler *tcph_;
     RawSock *sock_;
-    std::ostream *out_;
     Emitter emitter_;
     bool dry_run_;
     TargetSet target_;

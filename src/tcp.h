@@ -29,6 +29,7 @@
 
 #include <sstream>
 #include <ostream>
+#include <fluent.hpp>
 #include "./swarm/swarm.h"
 #include "./rawsock.h"
 #include "./emitter.h"
@@ -46,19 +47,16 @@ namespace lurker {
     RawSock *sock_;
     static const bool DBG = false;
     const TargetSet *target_;
-    Emitter *emitter_;
-    std::ostream *out_;
-
+    fluent::Logger *logger_;
     static size_t build_tcp_synack_packet(const swarm::Property &p,
                                           void *buffer, size_t len);
 
   public:
-    TcpHandler(swarm::Swarm *sw, TargetSet *target, Emitter *emitter);
+    TcpHandler(swarm::Swarm *sw, TargetSet *target);
     ~TcpHandler();
     void set_sock(RawSock *sock);
     void unset_sock();
-    void set_out_stream(std::ostream *os);
-    void unset_out_stream();
+    void set_logger(fluent::Logger *logger);
     void recv(swarm::ev_id eid, const  swarm::Property &p);
     void handle_synpkt(const swarm::Property &p);
     void handle_data(const swarm::Property &p);

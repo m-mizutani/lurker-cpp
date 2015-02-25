@@ -24,7 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-
+#include <sstream>
+#include <iomanip>
 #include <arpa/inet.h>
 #include <string.h>
 #include <assert.h>
@@ -261,6 +262,13 @@ namespace swarm {
   uint64_t Property::hash_value () const {
     return this->hash_value_ ;
   }
+  std::string Property::hash_hex () const {
+    std::stringstream ss;
+    ss << std::setw(16) << std::setfill('0') <<
+      std::hex << std::uppercase << this->hash_value_;
+    return ss.str();
+  }
+    
   FlowDir Property::dir() const {
     if (this->hashed_) {
       return this->dir_;

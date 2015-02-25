@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (opt.get("verbose")) {
-      lurker->set_out_stream(&(std::cout));
+      // TODO: need to manage verbose mode.
     }
 
     for (size_t i = 0; i < args.size(); i++) {

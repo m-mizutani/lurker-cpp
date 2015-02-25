@@ -36,7 +36,6 @@ namespace lurker {
     arph_(NULL),
     tcph_(NULL),
     sock_(NULL),
-    out_(NULL),
     dry_run_(dry_run),
     logger_(nullptr)
   {
@@ -51,8 +50,9 @@ namespace lurker {
       this->sw_ = new swarm::SwarmFile(input);
     }
 
-    this->tcph_ = new TcpHandler(this->sw_, &this->target_, &this->emitter_);
-
+    this->tcph_ = new TcpHandler(this->sw_, &this->target_);
+    this->tcph_->set_logger(this->logger_);
+    
     if (!this->dry_run_) {
       this->tcph_->set_sock(this->sock_);
     }
@@ -75,15 +75,6 @@ namespace lurker {
     */
   }
 
-  void Lurker::set_out_stream(std::ostream *os) {
-    this->out_ = os;
-    if (this->tcph_) {
-      this->tcph_->set_out_stream(this->out_);
-    }
-    if (this->arph_) {
-      this->arph_->set_out_stream(this->out_);
-    }
-  }
 
   void Lurker::add_target(const std::string &target) throw(Exception) {
     if (!this->target_.insert(target)) {
