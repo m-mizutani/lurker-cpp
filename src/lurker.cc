@@ -82,6 +82,17 @@ namespace lurker {
     }    
   }
 
+
+  void Lurker::set_output_fluentd(const std::string &host, int port) {
+    this->logger_->new_forward(host, port);
+  }
+  void Lurker::set_output_dumpfile(const std::string &fpath) {
+    this->logger_->new_dumpfile(fpath);
+  }
+  fluent::MsgQueue* Lurker::set_output_queue() {
+    return this->logger_->new_msgqueue();
+  }
+  
   void Lurker::enable_arp_spoof() {
     this->arph_ = new ArpHandler(this->sw_, &this->target_);
     this->arph_->set_logger(this->logger_);

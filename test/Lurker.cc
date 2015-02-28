@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2014 Masayoshi Mizutani <mizutani@sfc.wide.ad.jp>
+/*-
+ * Copyright (c) 2015 Masayoshi Mizutani <mizutani@sfc.wide.ad.jp>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,55 +24,19 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_LURKER_H__
-#define SRC_LURKER_H__
+#include <iostream>
+#include "./gtest.h"
+#include "../src/lurker.h"
 
-#include <sstream>
-#include <ostream>
-
-#include "./swarm/swarm.h"
-#include "./debug.h"
-#include "./rawsock.h"
-#include "./arp.h"
-#include "./tcp.h"
-
-namespace fluent {
-  class Logger;
+TEST(Lurker, dry_run) {
+  const std::string fpath = "./test/test-data.pcap";
+  const bool dry_run = true;
+  lurker::Lurker * lurker = new lurker::Lurker(fpath, dry_run);
+  fluent::MsgQueue *q = lurker->set_output_queue();
+  lurker->run();
+  fluent::Message *msg;
+  while(nullptr != (msg = q->pop())) {
+    std::cout << *msg << std::endl;
+  }
 }
 
-namespace lurker {
-  class Exception : public std::exception {
-  private:
-    std::string errmsg_;
-  public:
-    Exception(const std::string &errmsg) : errmsg_(errmsg) {}
-    ~Exception() {}
-    virtual const char* what() const throw() { return this->errmsg_.c_str(); }
-  };
-
-  class Lurker {
-  private:
-    swarm::Swarm *sw_;
-    ArpHandler *arph_;
-    TcpHandler *tcph_;
-    RawSock *sock_;
-    bool dry_run_;
-    TargetSet target_;
-    fluent::Logger *logger_;
-    fluent::MsgQueue *msg_queue_;
-    
-  public:
-    Lurker(const std::string &tgt, bool dry_run=false);
-    ~Lurker();
-    void set_filter(const std::string &filter);
-    void add_target(const std::string &target) throw(Exception);
-    void set_output_fluentd(const std::string &host, int port=24224);
-    void set_output_dumpfile(const std::string &fpath);
-    fluent::MsgQueue* set_output_queue();
-    void enable_arp_spoof();
-    void run() throw(Exception);
-  };
-}
-
-
-#endif  // SRC_LURKER_H__

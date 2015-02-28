@@ -9,10 +9,14 @@ SET(CMAKE_CXX_FLAGS_DEBUG   "-Wall -O0 -std=c++0x -g")
 SET(LIBRARY_OUTPUT_PATH    ${PROJECT_BINARY_DIR}/lib)
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
+option(WITH_FLUENT "libfluent prefix" ".")
+SET(FLUENT_INCLUDES  ${WITH_FLUENT}/src)
+SET(FLUENT_LIBRARIES ${WITH_FLUENT}/lib)
+
 cmake_policy(SET CMP0015 NEW)
 
-INCLUDE_DIRECTORIES(${INC_DIR} ./src)
-LINK_DIRECTORIES(${LIB_DIR})
+INCLUDE_DIRECTORIES(${INC_DIR} ${FLUENT_INCLUDES} ./src)
+LINK_DIRECTORIES(${LIB_DIR} ${FLUENT_LIBRARIES})
 FILE(GLOB BASESRCS "src/*.cc"
 	  "src/swarm/*.cc" "src/swarm/*.h" "src/swarm/swarm/*.h" 
 	  "src/swarm/utils/*.cc" "src/swarm/utils/*.h"
