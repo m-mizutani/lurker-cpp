@@ -51,6 +51,8 @@ int main(int argc, char *argv[]) {
     .help("Server name and port number to push result as ZMQ");
   psr.add_option("-o").dest("output").metavar("STRING")
     .help("Output file name. '-' means stdout");
+  psr.add_option("-b").dest("blow").metavar("BOOL").action("store_true")
+    .help("Enable blow mode");
   psr.add_option("-v").dest("verbose").metavar("BOOL").action("store_true")
     .help("Verbose mode");
   
