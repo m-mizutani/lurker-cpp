@@ -27,8 +27,7 @@
 #ifndef SRC_ARP_H__
 #define SRC_ARP_H__
 
-#include <ostream>
-#include <sstream>
+#include <set>
 #include <fluent.hpp>
 #include "./rawsock.h"
 #include "./target.h"
@@ -69,11 +68,19 @@ namespace lurker {
                   fluent::Logger *logger=nullptr, RawSock *sock=nullptr);
     ~StaticSpoofer();
   };
+  
   class DynamicSpoofer : public Spoofer {
   private:
+    std::map<std::string, time_t> disg_addrs_; // Disguise addresses
+    
     // protected:
     void handle_arp_request(const swarm::Property &p);
-    void handle_arp_reply(const swarm::Property &p); 
+    void handle_arp_reply(const swarm::Property &p);
+    
+  public:
+    DynamicSpoofer(swarm::Swarm *sw, fluent::Logger *logger=nullptr,
+                   RawSock *sock=nullptr);
+    ~DynamicSpoofer();
   };
   
 }

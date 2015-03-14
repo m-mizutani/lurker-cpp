@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (opt.get("enable_arp")) {
-      lurker->enable_arp_spoof();
+      lurker->enable_arp_spoof(opt.get("burrow"));
     }
 
     if (opt.get("verbose")) {

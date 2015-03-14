@@ -92,9 +92,14 @@ namespace lurker {
     return this->logger_->new_msgqueue();
   }
   
-  void Lurker::enable_arp_spoof() {
-    this->spoofer_ = new StaticSpoofer(this->sw_, &this->target_,
-                                       this->logger_, this->sock_);
+  void Lurker::enable_arp_spoof(bool burrow_mode) {
+    if (burrow_mode) {
+      this->spoofer_ = new DynamicSpoofer(this->sw_, this->logger_,
+                                          this->sock_);
+    } else {
+      this->spoofer_ = new StaticSpoofer(this->sw_, &this->target_,
+                                         this->logger_, this->sock_);
+    }
   }
 
   void Lurker::run() throw(Exception) {

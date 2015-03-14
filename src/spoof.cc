@@ -148,6 +148,54 @@ namespace lurker {
   }
 
 
+  DynamicSpoofer::DynamicSpoofer(swarm::Swarm *sw, fluent::Logger *logger,
+                                 RawSock *sock) :
+    Spoofer(sw, logger, sock) {
+  }
+  DynamicSpoofer::~DynamicSpoofer() {    
+  }
+  
+  void DynamicSpoofer::handle_arp_request(const swarm::Property &p) {
+    const std::string &src_addr = p.value("arp.src_pr").repr();
+    const std::string &dst_addr = p.value("arp.dst_pr").repr();
+
+    // Remove source address from target address set.
+    if (this->disg_addrs_.find(src_addr) != this->disg_addrs_.end()) {
+      debug(true, "remove: %s", src_addr.c_str());
+      this->disg_addrs_.erase(src_addr);
+    }
+
+    // Reply if the address is target.
+    const time_t timeout = 5;
+    auto it = this->disg_addrs_.find(dst_addr);
+    if (it != this->disg_addrs_.end() &&
+        it->second + timeout > p.tv_sec()) {
+
+      bool replied = false;
+      if (this->has_sock()) {
+        size_t buf_len;
+        uint8_t* buf = build_arp_reply(p, &buf_len);
+        replied =  this->write(buf, buf_len, "arp-reply");
+        free_arp_reply(buf);
+      }
+
+      fluent::Message *msg = this->logger_->retain_message("lurker.arp-req");
+      msg->set_ts(p.tv_sec());
+      msg->set("src_addr", p.value("arp.src_pr").repr());
+      msg->set("dst_addr", p.value("arp.dst_pr").repr());
+      msg->set("src_hw", p.value("arp.src_hw").repr());
+      msg->set("dst_hw", p.value("arp.dst_hw").repr());
+      msg->set("replied", replied);
+      this->logger_->emit(msg);
+      
+    } else if (src_addr != dst_addr) {
+      // If not Gratuitous ARP, register the address and timestamp.
+      this->disg_addrs_.insert(std::make_pair(dst_addr, p.tv_sec()));
+      debug(true, "add: %s", dst_addr.c_str());
+    }
+  }
+  void DynamicSpoofer::handle_arp_reply(const swarm::Property &p) {
+  }
   
 
 }

@@ -69,7 +69,7 @@ namespace lurker {
     void set_output_fluentd(const std::string &host, int port=24224);
     void set_output_dumpfile(const std::string &fpath);
     fluent::MsgQueue* set_output_queue();
-    void enable_arp_spoof();
+    void enable_arp_spoof(bool burrow_mode=false);
     void run() throw(Exception);
   };
 }
