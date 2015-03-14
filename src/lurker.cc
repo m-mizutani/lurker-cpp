@@ -82,7 +82,6 @@ namespace lurker {
     }    
   }
 
-
   void Lurker::set_output_fluentd(const std::string &host, int port) {
     this->logger_->new_forward(host, port);
   }

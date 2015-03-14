@@ -33,7 +33,7 @@
 #include "./swarm/swarm.h"
 #include "./debug.h"
 #include "./rawsock.h"
-#include "./arp.h"
+#include "./spoof.h"
 #include "./tcp.h"
 
 namespace fluent {

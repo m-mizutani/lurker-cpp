@@ -34,6 +34,48 @@
 #include "./target.h"
 
 namespace lurker {
+  class Spoofer : public swarm::Handler {
+  private:
+    swarm::Swarm *sw_;
+    RawSock *sock_;
+    swarm::ev_id req_id_, rep_id_;
+    swarm::hdlr_id req_h_, rep_h_;
+
+    virtual void handle_arp_request(const swarm::Property &p) {};
+    virtual void handle_arp_reply(const swarm::Property &p) {};
+    
+  protected:
+    fluent::Logger *logger_;
+    bool has_sock() const { return (this->sock_ != nullptr); }
+    bool write(uint8_t *buf, size_t buf_len, const std::string &ev_name);
+    uint8_t *build_arp_reply(const swarm::Property &p, size_t *len);
+    void free_arp_reply(uint8_t *ptr);
+    
+  public:
+    Spoofer(swarm::Swarm *sw, fluent::Logger *logger=nullptr,
+            RawSock *sock=nullptr);
+    ~Spoofer();
+    void recv(swarm::ev_id eid, const swarm::Property &p);
+  };
+  
+  class StaticSpoofer : public Spoofer {
+  private:
+    TargetSet *target_set_;
+    void handle_arp_request(const swarm::Property &p);
+    void handle_arp_reply(const swarm::Property &p);    
+
+  public:
+    StaticSpoofer(swarm::Swarm *sw, TargetSet *target_set,
+                  fluent::Logger *logger=nullptr, RawSock *sock=nullptr);
+    ~StaticSpoofer();
+  };
+  class DynamicSpoofer : public Spoofer {
+  private:
+    // protected:
+    void handle_arp_request(const swarm::Property &p);
+    void handle_arp_reply(const swarm::Property &p); 
+  };
+  
   class ArpHandler : public swarm::Handler {
   private:
     swarm::Swarm *sw_;
