@@ -33,7 +33,7 @@
 namespace lurker {
   Lurker::Lurker(const std::string &input, bool dry_run) : 
     sw_(nullptr), 
-    arph_(nullptr),
+    spoofer_(nullptr),
     tcph_(nullptr),
     sock_(nullptr),
     dry_run_(dry_run),
@@ -59,7 +59,7 @@ namespace lurker {
   }
   Lurker::~Lurker() {
     delete this->tcph_;
-    delete this->arph_;
+    delete this->spoofer_;
     delete this->sock_;
     delete this->sw_;
     delete this->logger_;
@@ -93,15 +93,8 @@ namespace lurker {
   }
   
   void Lurker::enable_arp_spoof() {
-    this->arph_ = new ArpHandler(this->sw_, &this->target_);
-    this->arph_->set_logger(this->logger_);
-    // this->arph_->set_mq(mq);
-    // arph->set_os(out);
-    this->sw_->set_handler("arp.request", this->arph_);
-
-    if (!this->dry_run_) {
-      this->arph_->set_sock(this->sock_);
-    }
+    this->spoofer_ = new StaticSpoofer(this->sw_, &this->target_,
+                                       this->logger_, this->sock_);
   }
 
   void Lurker::run() throw(Exception) {

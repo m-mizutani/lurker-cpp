@@ -53,7 +53,7 @@ namespace lurker {
   class Lurker {
   private:
     swarm::Swarm *sw_;
-    ArpHandler *arph_;
+    Spoofer *spoofer_;
     TcpHandler *tcph_;
     RawSock *sock_;
     bool dry_run_;

@@ -76,23 +76,6 @@ namespace lurker {
     void handle_arp_reply(const swarm::Property &p); 
   };
   
-  class ArpHandler : public swarm::Handler {
-  private:
-    swarm::Swarm *sw_;
-    swarm::val_id op_;
-    RawSock *sock_;
-    const TargetSet *target_;
-    fluent::Logger *logger_;
-
-  public:
-    ArpHandler(swarm::Swarm *sw, TargetSet *target);
-    ~ArpHandler();
-    void set_sock(RawSock *sock);
-    void unset_sock();
-    void set_logger(fluent::Logger *logger);
-    void recv(swarm::ev_id eid, const  swarm::Property &p);
-  };
-
 }
 
 
