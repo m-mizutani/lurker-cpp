@@ -47,7 +47,10 @@ namespace lurker {
     fluent::Logger *logger_;
     bool has_sock() const { return (this->sock_ != nullptr); }
     bool write(uint8_t *buf, size_t buf_len, const std::string &ev_name);
-    uint8_t *build_arp_reply(const swarm::Property &p, size_t *len);
+    const uint8_t* sock_hw_addr() const { return this->sock_->hw_addr(); }
+    const uint8_t* sock_pr_addr() const { return this->sock_->pr_addr(); }
+    uint8_t* build_arp_reply(const swarm::Property &p, size_t *len);
+    uint8_t* build_arp_request(void *addr, size_t *len);
     void free_arp_reply(uint8_t *ptr);
     
   public:

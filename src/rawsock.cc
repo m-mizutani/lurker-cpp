@@ -77,8 +77,7 @@
 
 namespace lurker {
   RawSock::RawSock(const std::string &dev_name) : 
-    sock_(0),
-    dev_name_(dev_name) {
+    sock_(0), dev_name_(dev_name), hw_addr_set_(false), pr_addr_set_(false) {
     if (!this->open()) {
       std::cerr << this->err_.str() << std::endl;
     }
@@ -104,9 +103,33 @@ namespace lurker {
   }
 
   const uint8_t* RawSock::hw_addr() const {
-    return this->hw_addr_;
+    return (this->hw_addr_set_) ? this->hw_addr_ : nullptr;
+  }
+  const uint8_t* RawSock::pr_addr() const {
+    return (this->pr_addr_set_) ? this->pr_addr_ : nullptr;
   }
 
+  bool RawSock::get_pr_addr(const std::string &dev_name, uint8_t *pr_addr,
+                            size_t len) {
+    int fd;
+    struct ifreq ifr;
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    ifr.ifr_addr.sa_family = AF_INET;
+    strncpy(ifr.ifr_name, dev_name.c_str(), IFNAMSIZ-1);
+    ioctl(fd, SIOCGIFADDR, &ifr);
+    close(fd);
+
+    void * addr =
+      static_cast<void*>(&((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+    memcpy(pr_addr, addr, len);
+    /*
+    char buf[32];
+    inet_ntop(AF_INET, addr, buf, sizeof(buf));
+    std::cout << "addr: " << buf << std::endl;
+    */
+    return true;
+  }
+  
 
 #ifdef _WIN64
 //define something for Windows (64-bit)
@@ -141,21 +164,37 @@ namespace lurker {
       return false;
     }
 
+    this->hw_addr_set_ =
+      RawSock::get_hw_addr(this->dev_name_, this->hw_addr_,
+                           sizeof(this->hw_addr_));
+    this->pr_addr_set_ = 
+      RawSock::get_pr_addr(this->dev_name_, this->pr_addr_,
+                           sizeof(this->pr_addr_));
+    return true;
+  }
+
+
+  bool RawSock::get_hw_addr(const std::string &dev_name, uint8_t *hw_addr,
+                            size_t len) {
+    // retrieve MAC address from dev_name
     struct ifaddrs *ifa_list, *ifa; 
     if (getifaddrs(&ifa_list) < 0) {
-      this->err_ << "getifaddrs: " << strerror(errno);
+      std::cerr << "getifaddrs: " << strerror(errno);
+      return false;
     }
 
-    // retrieve MAC address from dev_name
+    bool rc = false;
+    
     for (ifa = ifa_list; ifa != nullptr; ifa = ifa->ifa_next) {
-      struct sockaddr_dl *dl = reinterpret_cast<struct sockaddr_dl*> (ifa->ifa_addr);
+      struct sockaddr_dl *dl =
+        reinterpret_cast<struct sockaddr_dl*> (ifa->ifa_addr);
       if (dl->sdl_family == AF_LINK && dl->sdl_type == IFT_ETHER) {
         std::string if_name (dl->sdl_data, dl->sdl_nlen);
 
         debug(false, "if_name: %s", if_name.c_str());
-        if (if_name == this->dev_name_) {
-          memcpy (this->hw_addr_, LLADDR(dl), sizeof(this->hw_addr_));
-
+        if (if_name == dev_name) {
+          memcpy (hw_addr, LLADDR(dl), len);
+          rc = true;
           /*
           char *addr = LLADDR(dl);
           printf("%s: %02x:%02x:%02x:%02x:%02x:%02x\n", if_name.c_str(),
@@ -164,12 +203,13 @@ namespace lurker {
           break;
         }
       }
-    } 
+    }
+
     freeifaddrs(ifa_list); 
 
-    return true;
+    return rc;
   }
-
+  
   int RawSock::write(void *ptr, size_t len) {
     int rc;
     rc = ::write(this->sock_, ptr, len);

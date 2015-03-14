@@ -43,7 +43,8 @@ namespace lurker {
   } __attribute__((packed));
 
   static const u_int16_t ARPHRD_ETHER = 1; // Ethernet format
-  static const u_int16_t ARPOP_REPLY  = 2; // response to previous request 
+  static const u_int16_t ARPOP_REQUEST = 1; // request
+  static const u_int16_t ARPOP_REPLY   = 2; // response to previous request 
   struct arp_header {
     u_int16_t hw_addr_fmt_;
     u_int16_t pr_addr_fmt_;

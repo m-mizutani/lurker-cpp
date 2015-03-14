@@ -37,7 +37,14 @@ namespace lurker {
     std::string errmsg_;
     const std::string &dev_name_;
     uint8_t hw_addr_[6];
-
+    uint8_t pr_addr_[4];
+    bool hw_addr_set_;
+    bool pr_addr_set_;
+    static bool get_hw_addr(const std::string &dev_name, uint8_t *hw_addr,
+                            size_t len);
+    static bool get_pr_addr(const std::string &dev_name, uint8_t *pr_addr,
+                            size_t len);
+    
   public:
     RawSock(const std::string &dev_name);
     ~RawSock();
@@ -46,6 +53,7 @@ namespace lurker {
     int write(void *ptr, size_t len);
     const std::string &errmsg();
     const uint8_t* hw_addr() const;
+    const uint8_t* pr_addr() const;
   };
 }
 
