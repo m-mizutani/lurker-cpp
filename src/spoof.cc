@@ -155,6 +155,10 @@ namespace lurker {
   void Spoofer::free_arp_reply(uint8_t *ptr) {
     free(ptr);
   }
+
+  void Spoofer::free_arp_request(uint8_t *ptr) {
+    free(ptr);
+  }
   
 
   StaticSpoofer::StaticSpoofer(swarm::Swarm *sw, TargetSet *target_set,

@@ -52,6 +52,7 @@ namespace lurker {
     uint8_t* build_arp_reply(const swarm::Property &p, size_t *len);
     uint8_t* build_arp_request(void *addr, size_t *len);
     void free_arp_reply(uint8_t *ptr);
+    void free_arp_request(uint8_t *ptr);
     
   public:
     Spoofer(swarm::Swarm *sw, fluent::Logger *logger=nullptr,
