@@ -30,7 +30,7 @@ TARGET_LINK_LIBRARIES(lurker fluent pcap ev)
 
 # Test code
 ADD_EXECUTABLE(lurker-test ${TESTSRCS})
-TARGET_LINK_LIBRARIES(lurker-test lurker)
+TARGET_LINK_LIBRARIES(lurker-test lurker pthread)
 
 # Application (CLI) code
 ADD_EXECUTABLE(lurker-bin cli/main.cc cli/optparse.cc)
