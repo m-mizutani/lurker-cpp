@@ -25,6 +25,7 @@
  */
 
 #include <fstream>
+#include <iostream>
 
 #include <fluent.hpp>
 #include "./lurker.h"
@@ -65,44 +66,48 @@ namespace lurker {
     delete this->logger_;
   }
 
-  void Lurker::set_filter(const std::string &filter) {
-    /*
-    if (!this->sw_->set_filter(filter)) {
-      std::string err = "Pcap filter error: ";
-      err += pcap_dev->errmsg();
-      throw new Exception(err);
-    }
-    */
-  }
-
-
-  void Lurker::add_target(const std::string &target) throw(Exception) {
+  void Lurker::add_target(const std::string &target) {
     if (!this->target_.insert(target)) {
       throw Exception(this->target_.errmsg());
     }    
   }
 
-  void Lurker::set_output_fluentd(const std::string &host, int port) {
-    this->logger_->new_forward(host, port);
-  }
-  void Lurker::set_output_dumpfile(const std::string &fpath) {
-    this->logger_->new_dumpfile(fpath);
-  }
-  fluent::MsgQueue* Lurker::set_output_queue() {
-    return this->logger_->new_msgqueue();
-  }
-  
-  void Lurker::enable_arp_spoof(bool burrow_mode) {
-    if (burrow_mode) {
-      this->spoofer_ = new DynamicSpoofer(this->sw_, this->logger_,
-                                          this->sock_);
-    } else {
-      this->spoofer_ = new StaticSpoofer(this->sw_, &this->target_,
-                                         this->logger_, this->sock_);
+  void Lurker::import_target(const std::string &target_file) {
+    std::ifstream ifs(target_file);
+    std::string buf;
+    
+    if (ifs.fail()) {
+      throw Exception("can not open target file: " + target_file);
+    }
+    while (getline(ifs, buf)) {
+      debug(true, "%s", buf.c_str());
     }
   }
 
-  void Lurker::run() throw(Exception) {
+  void Lurker::output_to_fluentd(const std::string &conf) {
+    size_t p = conf.find(":");
+    if (p != std::string::npos) {
+      const std::string host = conf.substr(0, p);
+      const std::string port = conf.substr(p + 1);
+      this->logger_->new_forward(host, port);
+    } else {
+      // conf is just hostname
+      this->logger_->new_forward(conf);
+    }
+  }
+  void Lurker::output_to_file(const std::string &fpath) {
+    this->logger_->new_dumpfile(fpath);
+  }
+  fluent::MsgQueue* Lurker::output_to_queue() {
+    return this->logger_->new_msgqueue();
+  }
+
+  void Lurker::run() {
+    if (!this->dry_run_ && this->target_.count() > 0) {
+      this->spoofer_ = new StaticSpoofer(this->sw_, &this->target_,
+                                         this->logger_, this->sock_);
+    }
+    
     if (!this->sw_->ready()) {
       Exception("not ready");
     }

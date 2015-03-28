@@ -36,25 +36,14 @@ int main(int argc, char *argv[]) {
     .help("Specify interface to monitor on the fly");
   psr.add_option("-r").dest("pcap_file")
     .help("Specify pcap_file for dry run mode");
-  /*
-  psr.add_option("-f").dest("filter")
-    .help("Filter");
-  */
-
-  psr.add_option("-a").dest("enable_arp").action("store_true")
-    .help("Enable ARP spoofing");
 
   // Output options
-  psr.add_option("-p").dest("zmq_pub").metavar("INT")
-    .help("Port number to publish result as ZMQ");
-  psr.add_option("-z").dest("zmq_push").metavar("STR")
-    .help("Server name and port number to push result as ZMQ");
+  psr.add_option("-f").dest("fluentd").metavar("STR")
+    .help("Fluentd inet destination (e.g. 10.0.0.1:24224)");
   psr.add_option("-o").dest("output").metavar("STRING")
-    .help("Output file name. '-' means stdout");
-  psr.add_option("-b").dest("burrow").metavar("BOOL").action("store_true")
-    .help("Enable burrow mode");
-  psr.add_option("-v").dest("verbose").metavar("BOOL").action("store_true")
-    .help("Verbose mode");
+    .help("Output file path. '-' means stdout");
+  psr.add_option("-t").dest("target").metavar("STRING")
+    .help("File path of target list");
   
   optparse::Values& opt = psr.parse_args(argc, argv);
   std::vector <std::string> args = psr.args();
@@ -66,41 +55,40 @@ int main(int argc, char *argv[]) {
     lurker = new lurker::Lurker(opt["interface"]);
   } else if (opt.is_set("pcap_file")) {
     lurker = new lurker::Lurker(opt["pcap_file"], true);  // enable dry run mode
-  }
-
-  if (lurker == nullptr) {
-    std::cerr << "Should set interface with '-i' option" << std::endl;
-    return EXIT_FAILURE;
-  }
-
-  if (args.size() == 0) {
-    std::cerr << "No target is configured" << std::endl;
+  } else {
+    std::cerr << "Must set '-i' or '-r' option" << std::endl;
     return EXIT_FAILURE;
   }
 
   try {
-    if (opt.is_set("filter")) {
-      lurker->set_filter(opt["filter"]);
+    // Set target
+    if (opt.is_set("target")) {
+      lurker->import_target(opt["target"]);
     }
-
-    if (opt.get("enable_arp")) {
-      lurker->enable_arp_spoof(opt.get("burrow"));
-    }
-
-    if (opt.get("verbose")) {
-      // TODO: need to manage verbose mode.
-    }
-
     for (size_t i = 0; i < args.size(); i++) {
       lurker->add_target(args[i]);
     }
 
+    if (!lurker->has_target()) {
+      std::cerr << "Warning: No target is configured" << std::endl;
+    }
+    
+    // Configure output
+    if (opt.is_set("fluentd")) {
+      lurker->output_to_fluentd(opt["fluentd"]);
+    }
+    if (opt.is_set("output")) {
+      lurker->output_to_file(opt["output"]);
+    }
+
+    // Start
     lurker->run();
   } catch (const lurker::Exception &e) {
     std::cerr << e.what() << std::endl;
     return EXIT_FAILURE;
   }
 
+  delete lurker;
   return EXIT_SUCCESS;
 }
 

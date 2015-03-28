@@ -37,13 +37,15 @@ namespace lurker {
     // Target map by IP address (std::string) & port number (int)
     std::map<std::string, std::set<int>* > target_;
     std::string errmsg_;
-
+    size_t count_;
+    
   public:
     TargetSet();
     ~TargetSet();
     bool insert(const std::string &target);
     bool has(const std::string &addr) const;
     bool has(const std::string &addr, int port) const;
+    size_t count() const { return this->count_; }
     const std::string &errmsg() const;
   };
 }

@@ -29,7 +29,7 @@
 #include <assert.h>
 
 namespace lurker {
-  TargetSet::TargetSet() {
+  TargetSet::TargetSet() : count_(0) {
   }
   TargetSet::~TargetSet() {
     for (auto it = this->target_.begin(); it != this->target_.end(); it++) {
@@ -84,6 +84,7 @@ namespace lurker {
       this->target_.insert(std::make_pair(addr, port_set));
     }
 
+    this->count_++;
     return true;
   }
 

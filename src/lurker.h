@@ -59,18 +59,18 @@ namespace lurker {
     bool dry_run_;
     TargetSet target_;
     fluent::Logger *logger_;
-    fluent::MsgQueue *msg_queue_;
-    
+
   public:
     Lurker(const std::string &tgt, bool dry_run=false);
     ~Lurker();
-    void set_filter(const std::string &filter);
-    void add_target(const std::string &target) throw(Exception);
-    void set_output_fluentd(const std::string &host, int port=24224);
-    void set_output_dumpfile(const std::string &fpath);
-    fluent::MsgQueue* set_output_queue();
-    void enable_arp_spoof(bool burrow_mode=false);
-    void run() throw(Exception);
+    void add_target(const std::string &target);
+    void import_target(const std::string &target_file);
+    bool has_target() const { return (this->target_.count() > 0); }
+    void output_to_fluentd(const std::string &conf);
+    void output_to_file(const std::string &fpath);       
+    fluent::MsgQueue* output_to_queue();
+    
+    void run();
   };
 }
 
