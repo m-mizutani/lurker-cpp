@@ -171,10 +171,11 @@ namespace lurker {
     bool replied = false;
     size_t addr_len;
     void *dst_addr = p.value("arp.dst_pr").ptr(&addr_len);
-
+    const void *sock_addr = this->sock_pr_addr();
     if (this->target_set_->has(p.value("arp.dst_pr").repr()) &&
-        this->has_sock() &&
-        0 != memcmp(dst_addr, this->sock_pr_addr(), addr_len)) {
+        this->has_sock() && 
+        (sock_addr == nullptr || 
+        0 != memcmp(dst_addr, sock_addr , addr_len))) {
       size_t buf_len;
       uint8_t* buf = build_arp_reply(p, &buf_len);
       replied =  this->write(buf, buf_len, "arp-reply");
