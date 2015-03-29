@@ -169,14 +169,16 @@ namespace lurker {
   }
   void StaticSpoofer::handle_arp_request(const swarm::Property &p) {
     bool replied = false;
+    size_t addr_len;
+    void *dst_addr = p.value("arp.dst_pr").ptr(&addr_len);
 
-    if (this->target_set_->has(p.value("arp.dst_pr").repr())) {
-      if (this->has_sock()) {
-        size_t buf_len;
-        uint8_t* buf = build_arp_reply(p, &buf_len);
-        replied =  this->write(buf, buf_len, "arp-reply");
-        free_arp_reply(buf);
-      }
+    if (this->target_set_->has(p.value("arp.dst_pr").repr()) &&
+        this->has_sock() &&
+        0 != memcmp(dst_addr, this->sock_pr_addr(), addr_len)) {
+      size_t buf_len;
+      uint8_t* buf = build_arp_reply(p, &buf_len);
+      replied =  this->write(buf, buf_len, "arp-reply");
+      free_arp_reply(buf);
     }
 
     if (this->logger_) {

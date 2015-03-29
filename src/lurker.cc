@@ -80,7 +80,9 @@ namespace lurker {
       throw Exception("can not open target file: " + target_file);
     }
     while (getline(ifs, buf)) {
-      debug(true, "%s", buf.c_str());
+      if (buf.length() > 0) {
+        this->add_target(buf);
+      }
     }
   }
 
@@ -96,16 +98,21 @@ namespace lurker {
     }
   }
   void Lurker::output_to_file(const std::string &fpath) {
-    this->logger_->new_dumpfile(fpath);
+    if (fpath == "-") {
+      this->logger_->new_dumpfile(1); // Stdout
+    } else {
+      this->logger_->new_dumpfile(fpath);
+    }
   }
   fluent::MsgQueue* Lurker::output_to_queue() {
     return this->logger_->new_msgqueue();
   }
 
   void Lurker::run() {
-    if (!this->dry_run_ && this->target_.count() > 0) {
+    if (this->target_.count() > 0) {
+      RawSock *sock = (this->dry_run_ ? nullptr : this->sock_);
       this->spoofer_ = new StaticSpoofer(this->sw_, &this->target_,
-                                         this->logger_, this->sock_);
+                                         this->logger_, sock);
     }
     
     if (!this->sw_->ready()) {
