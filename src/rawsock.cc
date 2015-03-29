@@ -258,6 +258,11 @@ namespace lurker {
     }
 
     memcpy (this->hw_addr_, &if_mac.ifr_hwaddr.sa_data, sizeof(this->hw_addr_));
+    this->hw_addr_set_ = true;
+    this->pr_addr_set_ = 
+      RawSock::get_pr_addr(this->dev_name_, this->pr_addr_,
+                           sizeof(this->pr_addr_));
+
     return true;
   }
   int RawSock::write(void *ptr, size_t len) {
