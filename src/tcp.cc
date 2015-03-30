@@ -26,7 +26,6 @@
 
 #include <string.h>
 #include <iostream>
-#include <msgpack.hpp>
 
 #include "./debug.h"
 #include "./tcp.h"
@@ -168,7 +167,7 @@ namespace lurker {
 
       // Output to logger.
       if (this->logger_) {
-        fluent::Message *msg = this->logger_->retain_message("lurker.tcp-syn");
+        fluent::Message *msg = this->logger_->retain_message("lurker.tcp_syn");
         msg->set_ts(p.tv_sec());
         msg->set("src_addr", p.src_addr());
         msg->set("dst_addr", p.dst_addr());
@@ -216,7 +215,8 @@ namespace lurker {
         char *data_ptr = reinterpret_cast<char *>
           (p.value("tcp_ssn.segment").ptr(&data_len));
         std::string data(data_ptr, data_len);
-        fluent::Message *msg = this->logger_->retain_message("lurker.tcp-data");
+        fluent::Message *msg = this->logger_->retain_message("lurker.tcp_data");
+        msg->set_ts(p.tv_sec());
         msg->set("hash", p.hash_hex());
         msg->set("src_addr", p.src_addr());
         msg->set("dst_addr", p.dst_addr());
