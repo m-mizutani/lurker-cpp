@@ -183,7 +183,7 @@ namespace lurker {
     }
 
     if (this->logger_) {
-      fluent::Message *msg = this->logger_->retain_message("lurker.arp-req");
+      fluent::Message *msg = this->logger_->retain_message("lurker.arp_req");
       msg->set_ts(p.tv_sec());
       msg->set("src_addr", p.value("arp.src_pr").repr());
       msg->set("dst_addr", p.value("arp.dst_pr").repr());
@@ -230,7 +230,7 @@ namespace lurker {
         free_arp_reply(buf);
       }
 
-      fluent::Message *msg = this->logger_->retain_message("lurker.arp-req");
+      fluent::Message *msg = this->logger_->retain_message("lurker.arp_req");
       msg->set_ts(p.tv_sec());
       msg->set("src_addr", p.value("arp.src_pr").repr());
       msg->set("dst_addr", p.value("arp.dst_pr").repr());
