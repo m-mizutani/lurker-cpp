@@ -47,6 +47,7 @@ namespace lurker {
     static const bool DBG = false;
     const TargetSet *target_;
     fluent::Logger *logger_;
+    bool hexdata_log_;
     static size_t build_tcp_synack_packet(const swarm::Property &p,
                                           void *buffer, size_t len);
 
@@ -59,7 +60,11 @@ namespace lurker {
     void recv(swarm::ev_id eid, const  swarm::Property &p);
     void handle_synpkt(const swarm::Property &p);
     void handle_data(const swarm::Property &p);
-    
+
+    // Use HEX string in log message instead of binary data.
+    void enable_hexdata_log() { this->hexdata_log_ = true; }
+    void disable_hexdata_log() { this->hexdata_log_ = false; }
+    bool hexdata_log() const { return this->hexdata_log_; }
   };
 
 }

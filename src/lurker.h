@@ -70,6 +70,11 @@ namespace lurker {
     void output_to_file(const std::string &fpath);       
     fluent::MsgQueue* output_to_queue();
     
+    // Use HEX string in log message instead of binary data.
+    void enable_hexdata_log() { this->tcph_->enable_hexdata_log(); }
+    void disable_hexdata_log() { this->tcph_->disable_hexdata_log(); }
+    bool hexdata_log() const { return this->tcph_->hexdata_log(); }
+    
     void run();
   };
 }

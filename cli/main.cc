@@ -44,6 +44,8 @@ int main(int argc, char *argv[]) {
     .help("Output file path. '-' means stdout");
   psr.add_option("-t").dest("target").metavar("STRING")
     .help("File path of target list");
+  psr.add_option("-H").dest("hexdata").action("store_true")
+    .help("Enable hex format data log instead of binary data");
   
   optparse::Values& opt = psr.parse_args(argc, argv);
   std::vector <std::string> args = psr.args();
@@ -81,6 +83,12 @@ int main(int argc, char *argv[]) {
       lurker->output_to_file(opt["output"]);
     }
 
+    if (opt.get("hexdata")) {
+      lurker->enable_hexdata_log();
+    } else {
+      lurker->disable_hexdata_log();
+    }
+    
     // Start
     lurker->run();
   } catch (const lurker::Exception &e) {

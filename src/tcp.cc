@@ -26,7 +26,8 @@
 
 #include <string.h>
 #include <iostream>
-
+#include <sstream>
+#include <iomanip>
 #include "./debug.h"
 #include "./tcp.h"
 #include "./pkt.h"
@@ -55,7 +56,8 @@ namespace lurker {
   }
 
   TcpHandler::TcpHandler(swarm::Swarm *sw, TargetSet *target) :
-    sw_(sw), sock_(nullptr), target_(target), logger_(nullptr) {
+    sw_(sw), sock_(nullptr), target_(target), logger_(nullptr),
+    hexdata_log_(false) {
     this->syn_ev_  = this->sw_->lookup_event_id("tcp.syn"); 
     this->data_ev_ = this->sw_->lookup_event_id("tcp_ssn.data"); 
     this->syn_hdlr_id_  = this->sw_->set_handler(this->syn_ev_, this); 
@@ -212,9 +214,8 @@ namespace lurker {
     } else {
       if (this->logger_) {
         size_t data_len;
-        char *data_ptr = reinterpret_cast<char *>
+        unsigned char *data_ptr = reinterpret_cast<unsigned char *>
           (p.value("tcp_ssn.segment").ptr(&data_len));
-        std::string data(data_ptr, data_len);
         fluent::Message *msg = this->logger_->retain_message("lurker.tcp_data");
         msg->set_ts(p.tv_sec());
         msg->set("hash", p.hash_hex());
@@ -222,7 +223,19 @@ namespace lurker {
         msg->set("dst_addr", p.dst_addr());
         msg->set("src_port", p.src_port());
         msg->set("dst_port", p.dst_port());
-        msg->set("data", data);
+        if (this->hexdata_log_) {
+          std::string data;
+          char buf[3];
+          for (size_t i = 0; i < data_len; i++) {
+            snprintf(buf, sizeof(buf), "%02X", data_ptr[i]);
+            data += buf;
+          }
+          // msg->set("hex_data", ss.str());          
+          msg->set("hex_data", data);
+        } else {
+          std::string data(reinterpret_cast<char*>(data_ptr), data_len);
+          msg->set("data", data);
+        }
         this->logger_->emit(msg);
       }
     }
