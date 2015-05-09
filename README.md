@@ -13,8 +13,7 @@ Install
 
 - libpcap
 - libev
-- libfluent (install from [github]
-- libswarm (install from [github](https://github.com/m-mizutani/libfluent))
+- libfluent (install from [github](https://github.com/m-mizutani/libfluent))
 
 ### Setup
 
