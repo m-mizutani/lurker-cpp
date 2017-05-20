@@ -30,19 +30,20 @@
 #include <sstream>
 #include <ostream>
 #include <fluent.hpp>
-#include "./swarm/swarm.h"
 #include "./rawsock.h"
 #include "./target.h"
 
 namespace lurker {
-  class TcpHandler : public swarm::Handler {
+  class TcpHandler {
   private:
-    swarm::Swarm *sw_;
+    pm::Machine *machine_;
+    // swarm::M *sw_;
+    /*
     swarm::hdlr_id syn_hdlr_id_;
     swarm::hdlr_id data_hdlr_id_;
     swarm::ev_id syn_ev_;
     swarm::ev_id data_ev_;
-
+    */
     RawSock *sock_;
     static const bool DBG = false;
     const TargetSet *target_;

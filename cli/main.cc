@@ -26,7 +26,7 @@
 
 
 #include <fstream>
-#include "../src/lurker.h"
+#include "../src/lurker.hpp"
 #include "./optparse.h"
 
 int main(int argc, char *argv[]) {
@@ -83,11 +83,13 @@ int main(int argc, char *argv[]) {
       lurker->output_to_file(opt["output"]);
     }
 
+    /*    
     if (opt.get("hexdata")) {
       lurker->enable_hexdata_log();
     } else {
       lurker->disable_hexdata_log();
     }
+    */
     
     // Start
     lurker->run();

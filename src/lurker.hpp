@@ -30,54 +30,59 @@
 #include <sstream>
 #include <ostream>
 
-#include "./swarm/swarm.h"
-#include "./debug.h"
-#include "./rawsock.h"
-#include "./spoof.h"
-#include "./tcp.h"
+#include "./target.hpp"
 
 namespace fluent {
-  class Logger;
+class Logger;
+class MsgQueue;
+}
+namespace pm {
+class Machine;
 }
 
 namespace lurker {
-  class Exception : public std::exception {
-  private:
-    std::string errmsg_;
-  public:
-    Exception(const std::string &errmsg) : errmsg_(errmsg) {}
-    ~Exception() {}
-    virtual const char* what() const throw() { return this->errmsg_.c_str(); }
-  };
+class Spoofer;
+class RawSock;
 
-  class Lurker {
-  private:
-    swarm::Swarm *sw_;
-    Spoofer *spoofer_;
-    TcpHandler *tcph_;
-    RawSock *sock_;
-    bool dry_run_;
-    TargetSet target_;
-    fluent::Logger *logger_;
+class Exception : public std::exception {
+ private:
+  std::string errmsg_;
+ public:
+  Exception(const std::string &errmsg) : errmsg_(errmsg) {}
+  ~Exception() {}
+  virtual const char* what() const throw() { return this->errmsg_.c_str(); }
+};
 
-  public:
-    Lurker(const std::string &tgt, bool dry_run=false);
-    ~Lurker();
-    void add_target(const std::string &target);
-    void import_target(const std::string &target_file);
-    bool has_target() const { return (this->target_.count() > 0); }
-    void output_to_fluentd(const std::string &conf);
-    void output_to_file(const std::string &fpath);       
-    fluent::MsgQueue* output_to_queue();
-    
-    // Use HEX string in log message instead of binary data.
-    void enable_hexdata_log() { this->tcph_->enable_hexdata_log(); }
-    void disable_hexdata_log() { this->tcph_->disable_hexdata_log(); }
-    bool hexdata_log() const { return this->tcph_->hexdata_log(); }
-    
-    void run();
-  };
+class Lurker {
+ private:
+  Spoofer *spoofer_;
+  // TcpHandler *tcph_;
+  RawSock *sock_;
+  bool dry_run_;
+  TargetSet target_;
+  fluent::Logger *logger_;
+  pm::Machine *machine_;
+
+ public:
+  Lurker(const std::string &tgt, bool dry_run=false);
+  ~Lurker();
+  void add_target(const std::string &target);
+  void import_target(const std::string &target_file);
+  bool has_target() const { return (this->target_.count() > 0); }
+  void output_to_fluentd(const std::string &conf);
+  void output_to_file(const std::string &fpath);
+  fluent::MsgQueue* output_to_queue();
+
+  // Use HEX string in log message instead of binary data.
+  /*
+  void enable_hexdata_log() { this->tcph_->enable_hexdata_log(); }
+  void disable_hexdata_log() { this->tcph_->disable_hexdata_log(); }
+  bool hexdata_log() const { return this->tcph_->hexdata_log(); }
+  */
+  
+  void run();
+};
+
 }
-
 
 #endif  // SRC_LURKER_H__

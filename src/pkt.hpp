@@ -28,7 +28,6 @@
 #define SRC_PKT_H__
 
 #include <sstream>
-#include "./rawsock.h"
 
 namespace lurker {
 

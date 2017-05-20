@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "./target.h"
+#include "./target.hpp"
 #include <sstream>
 #include <assert.h>
 

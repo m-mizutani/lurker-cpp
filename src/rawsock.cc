@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "./rawsock.h"
+#include "./rawsock.hpp"
 #include "./debug.h"
 #include <unistd.h>
 #include <iostream>

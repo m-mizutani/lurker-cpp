@@ -24,101 +24,114 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "./lurker.hpp"
+
 #include <fstream>
 #include <iostream>
 
-#include <fluent.hpp>
-#include "./lurker.h"
+#include "../external/packetmachine/src/packetmachine.hpp"
+#include "../external/libfluent/src/fluent.hpp"
+#include "./rawsock.hpp"
+#include "./spoof.hpp"
 #include "./debug.h"
+#include "./target.hpp"
 
 namespace lurker {
-  Lurker::Lurker(const std::string &input, bool dry_run) : 
-    sw_(nullptr), 
+
+Lurker::Lurker(const std::string &input, bool dry_run) :
     spoofer_(nullptr),
-    tcph_(nullptr),
+    // tcph_(nullptr),
     sock_(nullptr),
     dry_run_(dry_run),
-    logger_(nullptr)
-  {
-    // Create Logger
-    this->logger_ = new fluent::Logger();
-      
-    // Create Swarm instance
-    if (!this->dry_run_) {
-      this->sw_   = new swarm::SwarmDev(input);
-      this->sock_ = new RawSock(input);
-    } else {
-      this->sw_ = new swarm::SwarmFile(input);
-    }
+    logger_(nullptr),
+    machine_(nullptr)
+{
+  // Create Logger
+  this->logger_ = new fluent::Logger();
+  this->machine_ = new pm::Machine();
 
-    this->tcph_ = new TcpHandler(this->sw_, &this->target_);
-    this->tcph_->set_logger(this->logger_);
-    
-    if (!this->dry_run_) {
-      this->tcph_->set_sock(this->sock_);
-    }
-  }
-  Lurker::~Lurker() {
-    delete this->tcph_;
-    delete this->spoofer_;
-    delete this->sock_;
-    delete this->sw_;
-    delete this->logger_;
+  // Create Swarm instance
+  if (!this->dry_run_) {
+    this->machine_->add_pcapdev(input);
+    this->sock_ = new RawSock(input);
+  } else {
+    this->machine_->add_pcapfile(input);
   }
 
-  void Lurker::add_target(const std::string &target) {
-    if (!this->target_.insert(target)) {
-      throw Exception(this->target_.errmsg());
-    }    
+  /*
+  this->tcph_ = new TcpHandler(this->machine_, &this->target_);
+  this->tcph_->set_logger(this->logger_);
+  */
+
+  /*
+  if (!this->dry_run_) {
+    this->tcph_->set_sock(this->sock_);
+  }
+  */
+}
+
+Lurker::~Lurker() {
+  // delete this->tcph_;
+  delete this->spoofer_;
+  delete this->sock_;
+  delete this->machine_;
+  delete this->logger_;
+}
+
+void Lurker::add_target(const std::string &target) {
+  if (!this->target_.insert(target)) {
+    throw Exception(this->target_.errmsg());
+  }
+}
+
+void Lurker::import_target(const std::string &target_file) {
+  std::ifstream ifs(target_file);
+  std::string buf;
+
+  if (ifs.fail()) {
+    throw Exception("can not open target file: " + target_file);
+  }
+  while (getline(ifs, buf)) {
+    if (buf.length() > 0) {
+      this->add_target(buf);
+    }
+  }
+}
+
+void Lurker::output_to_fluentd(const std::string &conf) {
+  size_t p = conf.find(":");
+  if (p != std::string::npos) {
+    const std::string host = conf.substr(0, p);
+    const std::string port = conf.substr(p + 1);
+    this->logger_->new_forward(host, port);
+  } else {
+    // conf is just hostname
+    this->logger_->new_forward(conf);
+  }
+}
+void Lurker::output_to_file(const std::string &fpath) {
+  if (fpath == "-") {
+    this->logger_->new_dumpfile(1); // Stdout
+  } else {
+    this->logger_->new_dumpfile(fpath);
+  }
+}
+
+fluent::MsgQueue* Lurker::output_to_queue() {
+  return this->logger_->new_msgqueue();
+}
+
+
+void Lurker::run() {
+  if (this->target_.count() > 0) {
+    /*
+    RawSock *sock = (this->dry_run_ ? nullptr : this->sock_);
+    this->spoofer_ = new Spoofer(this->machine_, &this->target_,
+                                 this->logger_, sock);
+    */
   }
 
-  void Lurker::import_target(const std::string &target_file) {
-    std::ifstream ifs(target_file);
-    std::string buf;
-    
-    if (ifs.fail()) {
-      throw Exception("can not open target file: " + target_file);
-    }
-    while (getline(ifs, buf)) {
-      if (buf.length() > 0) {
-        this->add_target(buf);
-      }
-    }
-  }
+  this->machine_->loop();
+}
 
-  void Lurker::output_to_fluentd(const std::string &conf) {
-    size_t p = conf.find(":");
-    if (p != std::string::npos) {
-      const std::string host = conf.substr(0, p);
-      const std::string port = conf.substr(p + 1);
-      this->logger_->new_forward(host, port);
-    } else {
-      // conf is just hostname
-      this->logger_->new_forward(conf);
-    }
-  }
-  void Lurker::output_to_file(const std::string &fpath) {
-    if (fpath == "-") {
-      this->logger_->new_dumpfile(1); // Stdout
-    } else {
-      this->logger_->new_dumpfile(fpath);
-    }
-  }
-  fluent::MsgQueue* Lurker::output_to_queue() {
-    return this->logger_->new_msgqueue();
-  }
-
-  void Lurker::run() {
-    if (this->target_.count() > 0) {
-      RawSock *sock = (this->dry_run_ ? nullptr : this->sock_);
-      this->spoofer_ = new StaticSpoofer(this->sw_, &this->target_,
-                                         this->logger_, sock);
-    }
-    
-    if (!this->sw_->ready()) {
-      Exception("not ready");
-    }
-
-    this->sw_->start();
-  }
 }

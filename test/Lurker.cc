@@ -26,7 +26,8 @@
 
 #include <iostream>
 #include "./gtest.h"
-#include "../src/lurker.h"
+#include "../src/lurker.hpp"
+#include "../external/libfluent/src/fluent.hpp"
 
 TEST(Lurker, dry_run) {
   const std::string fpath = "./test/test-data.pcap";

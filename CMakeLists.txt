@@ -4,6 +4,14 @@ PROJECT(Lurker)
 if(NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE "Release")
 endif()
+
+IF(POLICY CMP0042)
+    cmake_policy(SET CMP0042 NEW)
+ENDIF()
+IF(POLICY CMP0015)
+    cmake_policy(SET CMP0015 NEW)
+ENDIF()
+
 SET(CMAKE_CXX_FLAGS_RELEASE "-Wall -O2 -std=c++0x")
 SET(CMAKE_CXX_FLAGS_DEBUG   "-Wall -O0 -std=c++0x -g")
 SET(LIBRARY_OUTPUT_PATH    ${PROJECT_BINARY_DIR}/lib)
@@ -15,18 +23,24 @@ SET(FLUENT_LIBRARIES ${WITH_FLUENT}/lib)
 
 cmake_policy(SET CMP0015 NEW)
 
-INCLUDE_DIRECTORIES(${INC_DIR} ${FLUENT_INCLUDES} ./src)
+INCLUDE_DIRECTORIES(${INC_DIR} ./src)
+INCLUDE_DIRECTORIES(external/packetmachine/src/)
+INCLUDE_DIRECTORIES(external/libfluent/src/)
+ADD_SUBDIRECTORY(external/packetmachine)
+ADD_SUBDIRECTORY(external/libfluent)
+
 LINK_DIRECTORIES(${LIB_DIR} ${FLUENT_LIBRARIES})
-FILE(GLOB BASESRCS "src/*.cc"
-	  "src/swarm/*.cc" "src/swarm/*.h" "src/swarm/swarm/*.h" 
-	  "src/swarm/utils/*.cc" "src/swarm/utils/*.h"
-	  "src/swarm/proto/*.cc" "src/swarm/proto/*.h"
+FILE(GLOB BASESRCS
+  "src/lurker.cc"   "src/lurker.hpp"
+	"src/rawsock.cc"  "src/rawsock.hpp"
+	"src/target.cc"   "src/target.hpp"
+	"src/spoof.cc"    "src/spoof.hpp"
 )
 FILE(GLOB TESTSRCS "test/*.cc")
 
 # Module code
 ADD_LIBRARY(lurker SHARED ${BASESRCS})
-TARGET_LINK_LIBRARIES(lurker fluent pcap ev)
+TARGET_LINK_LIBRARIES(lurker  pm-static fluent-static)
 
 # Test code
 ADD_EXECUTABLE(lurker-test ${TESTSRCS})
