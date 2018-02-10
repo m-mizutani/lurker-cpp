@@ -108,14 +108,6 @@ fluent::MsgQueue* Lurker::output_to_queue() {
 
 void Lurker::run() {
   this->setup();
-  if (this->target_.count() > 0) {
-    /*
-    RawSock *sock = (this->dry_run_ ? nullptr : this->sock_);
-    this->spoofer_ = new Spoofer(this->machine_, &this->target_,
-                                 this->logger_, sock);
-    */
-  }
-
   this->machine_->loop();
 }
 

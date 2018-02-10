@@ -1,5 +1,5 @@
-/*-
- * Copyright (c) 2013 Masayoshi Mizutani <mizutani@sfc.wide.ad.jp>
+/*
+ * Copyright (c) 2018 Masayoshi Mizutani <mizutani@sfc.wide.ad.jp>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,15 @@ namespace lurker {
 
 Spoofer::Spoofer(pm::Machine *machine, fluent::Logger *logger) :
     machine_(machine), sock_(nullptr), logger_(logger) {
+  machine->on("ARP.request", [&](const pm::Property &p) {
+      // printf(".\n");
+    });
+
+  machine->on("ARP.reply", [&](const pm::Property &p) {
+      // printf(".\n");
+    });
+
+
   /*
   assert(this->sw_);
   this->req_h_ = this->sw_->set_handler("arp.request", this);
@@ -46,8 +55,10 @@ Spoofer::Spoofer(pm::Machine *machine, fluent::Logger *logger) :
   this->rep_id_ = this->sw_->lookup_event_id("arp.reply");
   */
 }
+  
 Spoofer::~Spoofer() {
 }
+  
 /*
 
 // Routing to callback function.

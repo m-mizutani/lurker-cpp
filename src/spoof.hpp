@@ -1,5 +1,5 @@
-/*-
- * Copyright (c) 2013 Masayoshi Mizutani <mizutani@sfc.wide.ad.jp>
+/*
+ * Copyright (c) 2018 Masayoshi Mizutani <mizutani@sfc.wide.ad.jp>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
