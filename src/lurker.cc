@@ -1,5 +1,5 @@
-/*-
- * Copyright (c) 2013 Masayoshi Mizutani <mizutani@sfc.wide.ad.jp>
+/*
+ * Copyright (c) 2018 Masayoshi Mizutani <mizutani@sfc.wide.ad.jp>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,25 +38,13 @@
 
 namespace lurker {
 
-Lurker::Lurker(const std::string &input, bool dry_run) :
-    spoofer_(nullptr),
-    // tcph_(nullptr),
-    sock_(nullptr),
-    dry_run_(dry_run),
-    logger_(nullptr),
-    machine_(nullptr)
-{
+Lurker::Lurker(const std::string &source_name) :
+    spoofer_(nullptr), logger_(nullptr),
+    source_name_(source_name), machine_(nullptr) {
+  
   // Create Logger
   this->logger_ = new fluent::Logger();
   this->machine_ = new pm::Machine();
-
-  // Create Swarm instance
-  if (!this->dry_run_) {
-    this->machine_->add_pcapdev(input);
-    this->sock_ = new RawSock(input);
-  } else {
-    this->machine_->add_pcapfile(input);
-  }
 
   /*
   this->tcph_ = new TcpHandler(this->machine_, &this->target_);
@@ -73,7 +61,6 @@ Lurker::Lurker(const std::string &input, bool dry_run) :
 Lurker::~Lurker() {
   // delete this->tcph_;
   delete this->spoofer_;
-  delete this->sock_;
   delete this->machine_;
   delete this->logger_;
 }
@@ -111,9 +98,9 @@ void Lurker::output_to_fluentd(const std::string &conf) {
 }
 void Lurker::output_to_file(const std::string &fpath) {
   if (fpath == "-") {
-    this->logger_->new_dumpfile(1); // Stdout
+    this->logger_->new_textfile(1); // Stdout
   } else {
-    this->logger_->new_dumpfile(fpath);
+    this->logger_->new_textfile(fpath);
   }
 }
 
@@ -123,6 +110,7 @@ fluent::MsgQueue* Lurker::output_to_queue() {
 
 
 void Lurker::run() {
+  this->setup();
   if (this->target_.count() > 0) {
     /*
     RawSock *sock = (this->dry_run_ ? nullptr : this->sock_);
@@ -133,5 +121,39 @@ void Lurker::run() {
 
   this->machine_->loop();
 }
+
+
+
+// ---------------------------
+// DryRun
+
+DryRun::DryRun(const std::string& src) : Lurker(src) {
+}
+
+DryRun::~DryRun() {
+}
+
+void DryRun::setup() {
+  assert(this->machine_);
+  this->machine_->add_pcapfile(this->source_name());
+}
+
+
+// ---------------------------
+// Device
+
+Device::Device(const std::string& src) : Lurker(src), sock_(nullptr) {
+}
+
+Device::~Device() {
+  delete this->sock_;
+}
+
+void Device::setup() {
+  assert(this->machine_);
+  this->machine_->add_pcapdev(this->source_name());
+  this->sock_ = new RawSock(this->source_name());
+}
+
 
 }

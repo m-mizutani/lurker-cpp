@@ -31,8 +31,7 @@
 
 TEST(Lurker, dry_run) {
   const std::string fpath = "./test/test-data.pcap";
-  const bool dry_run = true;
-  lurker::Lurker * lurker = new lurker::Lurker(fpath, dry_run);
+  lurker::Lurker * lurker = new lurker::DryRun(fpath);
   fluent::MsgQueue *q = lurker->output_to_queue();
   lurker->run();
   fluent::Message *msg;

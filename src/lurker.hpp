@@ -57,18 +57,27 @@ class Lurker {
  private:
   Spoofer *spoofer_;
   // TcpHandler *tcph_;
-  RawSock *sock_;
-  bool dry_run_;
-  TargetSet target_;
   fluent::Logger *logger_;
+  TargetSet target_;
+  std::string source_name_;
+
+  virtual void setup() = 0;
+  
+ protected:
+  const TargetSet& targets() const { return this->target_; }
+  const std::string& source_name() const { return this->source_name_; }
   pm::Machine *machine_;
 
  public:
-  Lurker(const std::string &tgt, bool dry_run=false);
-  ~Lurker();
+  Lurker(const std::string &source_name);
+  virtual ~Lurker();
+
+  // configure reply target
   void add_target(const std::string &target);
   void import_target(const std::string &target_file);
   bool has_target() const { return (this->target_.count() > 0); }
+
+  // configure output
   void output_to_fluentd(const std::string &conf);
   void output_to_file(const std::string &fpath);
   fluent::MsgQueue* output_to_queue();
@@ -83,6 +92,27 @@ class Lurker {
   void run();
 };
 
+
+class DryRun : public Lurker {
+ private:
+  void setup();
+
+ public:
+  DryRun(const std::string& src);
+  ~DryRun();
+};
+
+
+class Device : public Lurker {
+ private:
+  RawSock *sock_;
+  void setup();
+  
+ public:
+  Device(const std::string& src);
+  ~Device();
+};
+
 }
 
-#endif  // SRC_LURKER_H__
+#endif   // SRC_LURKER_H__
