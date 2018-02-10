@@ -32,11 +32,12 @@
 #include "./debug.h"
 #include "./spoof.hpp"
 #include "./pkt.hpp"
+#include "./rawsock.hpp"
 
 namespace lurker {
 
-Spoofer::Spoofer(pm::Machine *machine, fluent::Logger *logger, RawSock *sock) :
-    machine_(machine), sock_(sock), logger_(logger) {
+Spoofer::Spoofer(pm::Machine *machine, fluent::Logger *logger) :
+    machine_(machine), sock_(nullptr), logger_(logger) {
   /*
   assert(this->sw_);
   this->req_h_ = this->sw_->set_handler("arp.request", this);

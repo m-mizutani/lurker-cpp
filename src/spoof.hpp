@@ -38,6 +38,8 @@ class Property;
 }
 
 namespace lurker {
+class RawSock;
+
 class Spoofer {
  private:
   pm::Machine *machine_;
@@ -62,8 +64,7 @@ class Spoofer {
   void free_arp_request(uint8_t *ptr);
 
  public:
-  Spoofer(pm::Machine *machine, fluent::Logger *logger=nullptr,
-          RawSock *sock = nullptr);
+  Spoofer(pm::Machine *machine, fluent::Logger *logger=nullptr);
   ~Spoofer();
   // void recv(swarm::ev_id eid, const swarm::Property &p);
 };

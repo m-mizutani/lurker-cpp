@@ -31,7 +31,6 @@
 
 #include "../external/packetmachine/src/packetmachine.hpp"
 #include "../external/libfluent/src/fluent.hpp"
-#include "./rawsock.hpp"
 #include "./spoof.hpp"
 #include "./debug.h"
 #include "./target.hpp"
@@ -39,8 +38,7 @@
 namespace lurker {
 
 Lurker::Lurker(const std::string &source_name) :
-    spoofer_(nullptr), logger_(nullptr),
-    source_name_(source_name), machine_(nullptr) {
+    logger_(nullptr), source_name_(source_name), machine_(nullptr) {
   
   // Create Logger
   this->logger_ = new fluent::Logger();
@@ -60,7 +58,6 @@ Lurker::Lurker(const std::string &source_name) :
 
 Lurker::~Lurker() {
   // delete this->tcph_;
-  delete this->spoofer_;
   delete this->machine_;
   delete this->logger_;
 }
@@ -142,17 +139,17 @@ void DryRun::setup() {
 // ---------------------------
 // Device
 
-Device::Device(const std::string& src) : Lurker(src), sock_(nullptr) {
+Device::Device(const std::string& src) : Lurker(src), spoofer_(nullptr) {
 }
 
 Device::~Device() {
-  delete this->sock_;
+  delete this->spoofer_;
 }
 
 void Device::setup() {
   assert(this->machine_);
   this->machine_->add_pcapdev(this->source_name());
-  this->sock_ = new RawSock(this->source_name());
+  this->spoofer_ = new Spoofer(this->machine_, this->logger());
 }
 
 

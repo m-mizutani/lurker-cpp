@@ -42,7 +42,6 @@ class Machine;
 
 namespace lurker {
 class Spoofer;
-class RawSock;
 
 class Exception : public std::exception {
  private:
@@ -55,7 +54,6 @@ class Exception : public std::exception {
 
 class Lurker {
  private:
-  Spoofer *spoofer_;
   // TcpHandler *tcph_;
   fluent::Logger *logger_;
   TargetSet target_;
@@ -66,6 +64,7 @@ class Lurker {
  protected:
   const TargetSet& targets() const { return this->target_; }
   const std::string& source_name() const { return this->source_name_; }
+  fluent::Logger* logger() const { return this->logger_; }
   pm::Machine *machine_;
 
  public:
@@ -105,7 +104,7 @@ class DryRun : public Lurker {
 
 class Device : public Lurker {
  private:
-  RawSock *sock_;
+  Spoofer *spoofer_;
   void setup();
   
  public:
